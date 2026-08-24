@@ -299,6 +299,59 @@ export async function revokeHouseholdInvitation(formData: FormData) {
   redirect("/?section=household");
 }
 
+export async function removeHouseholdMember(formData: FormData) {
+  const { supabase, userId } = await currentUserId();
+  const householdId = clean(formData.get("household_id"));
+  const memberUserId = clean(formData.get("user_id"));
+
+  if (!householdId || !memberUserId) {
+    redirect("/?section=household&share_error=Could%20not%20identify%20that%20household%20member.");
+  }
+
+  const { data: ownerMembership } = await supabase
+    .from("household_members")
+    .select("role")
+    .eq("household_id", householdId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (ownerMembership?.role !== "owner") {
+    redirect("/?section=household&share_error=Only%20the%20household%20owner%20can%20remove%20members.");
+  }
+
+  if (memberUserId === userId) {
+    redirect("/?section=household&share_error=The%20household%20owner%20cannot%20remove%20themselves.");
+  }
+
+  const { data: targetMembership } = await supabase
+    .from("household_members")
+    .select("role")
+    .eq("household_id", householdId)
+    .eq("user_id", memberUserId)
+    .maybeSingle();
+
+  if (!targetMembership) {
+    redirect("/?section=household&share_error=That%20person%20is%20no%20longer%20in%20the%20household.");
+  }
+
+  if (targetMembership.role === "owner") {
+    redirect("/?section=household&share_error=The%20household%20owner%20cannot%20be%20removed.");
+  }
+
+  const { error } = await supabase
+    .from("household_members")
+    .delete()
+    .eq("household_id", householdId)
+    .eq("user_id", memberUserId);
+
+  if (error) {
+    redirect(`/?section=household&share_error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/?section=household");
+}
+
 export async function acceptHouseholdInvitation(formData: FormData) {
   const { supabase } = await currentUserId();
   const token = clean(formData.get("token"));
