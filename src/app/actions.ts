@@ -29,6 +29,11 @@ function lines(value: FormDataEntryValue | null) {
     .filter(Boolean);
 }
 
+function safeNext(value: FormDataEntryValue | null) {
+  const next = clean(value);
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/";
+}
+
 async function currentUserId() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -42,14 +47,22 @@ export async function login(formData: FormData) {
   const supabase = await createClient();
   const email = clean(formData.get("email"));
   const password = clean(formData.get("password"));
+  const next = safeNext(formData.get("next"));
+  const inviteToken = clean(formData.get("invite_token"));
 
-  if (!email || !password) redirect("/login?error=Enter%20your%20email%20and%20password.");
+  if (!email || !password) {
+    const suffix = inviteToken ? `&invite=${encodeURIComponent(inviteToken)}&next=${encodeURIComponent(next)}` : "";
+    redirect(`/login?error=Enter%20your%20email%20and%20password.${suffix}`);
+  }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    const suffix = inviteToken ? `&invite=${encodeURIComponent(inviteToken)}&next=${encodeURIComponent(next)}` : "";
+    redirect(`/login?error=${encodeURIComponent(error.message)}${suffix}`);
+  }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(next);
 }
 
 export async function signup(formData: FormData) {
@@ -57,28 +70,35 @@ export async function signup(formData: FormData) {
   const displayName = clean(formData.get("display_name"));
   const email = clean(formData.get("email"));
   const password = clean(formData.get("password"));
+  const next = safeNext(formData.get("next"));
+  const inviteToken = clean(formData.get("invite_token"));
 
   if (!displayName || !email || !password) {
-    redirect("/login?mode=signup&error=Complete%20all%20fields.");
+    redirect(`/login?mode=signup&error=Complete%20all%20fields.&next=${encodeURIComponent(next)}${inviteToken ? `&invite=${encodeURIComponent(inviteToken)}` : ""}`);
   }
   if (password.length < 8) {
-    redirect("/login?mode=signup&error=Use%20at%20least%208%20characters%20for%20your%20password.");
+    redirect(`/login?mode=signup&error=Use%20at%20least%208%20characters%20for%20your%20password.&next=${encodeURIComponent(next)}${inviteToken ? `&invite=${encodeURIComponent(inviteToken)}` : ""}`);
   }
+
+  const metadata: Record<string, string> = { display_name: displayName };
+  if (inviteToken) metadata.pending_household_invite = inviteToken;
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { display_name: displayName } },
+    options: { data: metadata },
   });
 
-  if (error) redirect(`/login?mode=signup&error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    redirect(`/login?mode=signup&error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}${inviteToken ? `&invite=${encodeURIComponent(inviteToken)}` : ""}`);
+  }
 
   if (data.session) {
     revalidatePath("/", "layout");
-    redirect("/");
+    redirect(next);
   }
 
-  redirect(`/login?message=${encodeURIComponent("Check your email to confirm your account, then sign in.")}`);
+  redirect(`/login?message=${encodeURIComponent("Check your email to confirm your account, then sign in.")}&next=${encodeURIComponent(next)}${inviteToken ? `&invite=${encodeURIComponent(inviteToken)}` : ""}`);
 }
 
 export async function logout() {
@@ -104,11 +124,7 @@ export async function createHousehold(formData: FormData) {
   if (!householdId) {
     const { data: household, error } = await supabase
       .from("households")
-      .insert({
-        name,
-        timezone: "America/Chicago",
-        created_by: userId,
-      })
+      .insert({ name, timezone: "America/Chicago", created_by: userId })
       .select("id")
       .single();
 
@@ -117,11 +133,7 @@ export async function createHousehold(formData: FormData) {
   }
 
   const { error: memberError } = await supabase.from("household_members").upsert(
-    {
-      household_id: householdId,
-      user_id: userId,
-      role: "owner",
-    },
+    { household_id: householdId, user_id: userId, role: "owner" },
     { onConflict: "household_id,user_id" },
   );
 
@@ -135,7 +147,6 @@ export async function addRecipe(formData: FormData) {
   const { supabase, userId } = await currentUserId();
   const householdId = clean(formData.get("household_id"));
   const name = clean(formData.get("name"));
-
   if (!householdId || !name) return;
 
   const ingredients = lines(formData.get("ingredients")).map((text) => ({ text }));
@@ -188,37 +199,19 @@ export async function saveDinnerPlan(formData: FormData) {
   const weekStart = clean(formData.get("week_start"));
   const mealDate = clean(formData.get("meal_date"));
   const selection = clean(formData.get("selection"));
-
   if (!householdId || !weekStart || !mealDate || !selection) return;
 
-  const { data: membership } = await supabase
-    .from("household_members")
-    .select("household_id")
-    .eq("household_id", householdId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
+  const { data: membership } = await supabase.from("household_members").select("household_id").eq("household_id", householdId).eq("user_id", userId).maybeSingle();
   if (!membership) throw new Error("You do not have access to this household.");
 
-  const { data: existingPlan, error: planLookupError } = await supabase
-    .from("meal_plans")
-    .select("id")
-    .eq("household_id", householdId)
-    .eq("week_start", weekStart)
-    .maybeSingle();
-
+  const { data: existingPlan, error: planLookupError } = await supabase.from("meal_plans").select("id").eq("household_id", householdId).eq("week_start", weekStart).maybeSingle();
   if (planLookupError) throw new Error(planLookupError.message);
 
   let mealPlanId = existingPlan?.id;
 
   if (selection === "none") {
     if (mealPlanId) {
-      const { error } = await supabase
-        .from("meal_plan_items")
-        .delete()
-        .eq("meal_plan_id", mealPlanId)
-        .eq("meal_date", mealDate)
-        .eq("meal_type", "dinner");
+      const { error } = await supabase.from("meal_plan_items").delete().eq("meal_plan_id", mealPlanId).eq("meal_date", mealDate).eq("meal_type", "dinner");
       if (error) throw new Error(error.message);
     }
     revalidatePath("/");
@@ -226,12 +219,7 @@ export async function saveDinnerPlan(formData: FormData) {
   }
 
   if (!mealPlanId) {
-    const { data: newPlan, error } = await supabase
-      .from("meal_plans")
-      .insert({ household_id: householdId, week_start: weekStart, created_by: userId })
-      .select("id")
-      .single();
-
+    const { data: newPlan, error } = await supabase.from("meal_plans").insert({ household_id: householdId, week_start: weekStart, created_by: userId }).select("id").single();
     if (error || !newPlan) throw new Error(error?.message ?? "Could not create meal plan.");
     mealPlanId = newPlan.id;
   }
@@ -241,13 +229,7 @@ export async function saveDinnerPlan(formData: FormData) {
 
   if (selection.startsWith("recipe:")) {
     recipeId = selection.slice("recipe:".length);
-    const { data: recipe, error } = await supabase
-      .from("recipes")
-      .select("id")
-      .eq("id", recipeId)
-      .eq("household_id", householdId)
-      .maybeSingle();
-
+    const { data: recipe, error } = await supabase.from("recipes").select("id").eq("id", recipeId).eq("household_id", householdId).maybeSingle();
     if (error || !recipe) throw new Error("That recipe is not available in this household.");
   } else if (selection === "leftovers" || selection === "eating_out" || selection === "skipped") {
     status = selection;
@@ -256,18 +238,75 @@ export async function saveDinnerPlan(formData: FormData) {
   }
 
   const { error } = await supabase.from("meal_plan_items").upsert(
-    {
-      meal_plan_id: mealPlanId,
-      meal_date: mealDate,
-      meal_type: "dinner",
-      recipe_id: recipeId,
-      custom_label: null,
-      status,
-      notes: null,
-    },
+    { meal_plan_id: mealPlanId, meal_date: mealDate, meal_type: "dinner", recipe_id: recipeId, custom_label: null, status, notes: null },
     { onConflict: "meal_plan_id,meal_date,meal_type" },
   );
 
   if (error) throw new Error(error.message);
   revalidatePath("/");
+}
+
+export async function createHouseholdInvitation(formData: FormData) {
+  const { supabase, userId } = await currentUserId();
+  const householdId = clean(formData.get("household_id"));
+  const email = clean(formData.get("email")).toLowerCase();
+
+  if (!householdId || !email || !email.includes("@")) {
+    redirect("/?section=household&share_error=Enter%20a%20valid%20email%20address.");
+  }
+
+  const { data: membership } = await supabase
+    .from("household_members")
+    .select("role")
+    .eq("household_id", householdId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (membership?.role !== "owner") throw new Error("Only a household owner can send invitations.");
+
+  await supabase
+    .from("household_invitations")
+    .update({ revoked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("household_id", householdId)
+    .ilike("invited_email", email)
+    .is("accepted_at", null)
+    .is("revoked_at", null);
+
+  const { data: invitation, error } = await supabase
+    .from("household_invitations")
+    .insert({ household_id: householdId, invited_email: email, invited_by: userId })
+    .select("token")
+    .single();
+
+  if (error || !invitation) throw new Error(error?.message ?? "Could not create invitation.");
+
+  revalidatePath("/");
+  redirect(`/?section=household&invite=${invitation.token}`);
+}
+
+export async function revokeHouseholdInvitation(formData: FormData) {
+  const { supabase } = await currentUserId();
+  const id = clean(formData.get("id"));
+  if (!id) return;
+
+  const { error } = await supabase
+    .from("household_invitations")
+    .update({ revoked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+  redirect("/?section=household");
+}
+
+export async function acceptHouseholdInvitation(formData: FormData) {
+  const { supabase } = await currentUserId();
+  const token = clean(formData.get("token"));
+  if (!token) redirect("/");
+
+  const { error } = await supabase.rpc("accept_household_invitation", { invite_token: token });
+  if (error) redirect(`/invite/${encodeURIComponent(token)}?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePath("/", "layout");
+  redirect("/?section=household&joined=1");
 }
