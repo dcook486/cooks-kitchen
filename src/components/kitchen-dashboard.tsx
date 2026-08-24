@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { addRecipe, deleteRecipe, logout, toggleFavorite } from "@/app/actions";
+import { WeeklyPlanner } from "@/components/weekly-planner";
 
 type View = "week" | "recipes" | "grocery";
 
@@ -27,13 +28,24 @@ type Recipe = {
   is_favorite: boolean;
 };
 
+type MealPlanItem = {
+  id: string;
+  meal_date: string;
+  meal_type: string;
+  recipe_id: string | null;
+  custom_label: string | null;
+  status: string;
+  notes: string | null;
+};
+
 type Props = {
   household: Household;
   recipes: Recipe[];
   displayName: string;
+  mealPlanItems: MealPlanItem[];
+  weekStart: string;
+  currentWeekStart: string;
 };
-
-const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function totalMinutes(recipe: Recipe) {
   const total = (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
@@ -44,8 +56,15 @@ function ingredientCount(recipe: Recipe) {
   return Array.isArray(recipe.ingredients) ? recipe.ingredients.length : 0;
 }
 
-export function KitchenDashboard({ household, recipes, displayName }: Props) {
-  const [view, setView] = useState<View>(recipes.length ? "recipes" : "week");
+export function KitchenDashboard({
+  household,
+  recipes,
+  displayName,
+  mealPlanItems,
+  weekStart,
+  currentWeekStart,
+}: Props) {
+  const [view, setView] = useState<View>("week");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [query, setQuery] = useState("");
   const [showAddRecipe, setShowAddRecipe] = useState(false);
@@ -90,42 +109,13 @@ export function KitchenDashboard({ household, recipes, displayName }: Props) {
 
       <main>
         {view === "week" && (
-          <section>
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">DINNER AT A GLANCE</p>
-                <h2>This week</h2>
-              </div>
-              <button className="primary" onClick={() => setView("recipes")}>Choose from recipes</button>
-            </div>
-
-            <div className="week-grid">
-              {days.map((day, index) => {
-                const suggestion = recipes[index % Math.max(recipes.length, 1)];
-                return (
-                  <article className="day-card" key={day}>
-                    <div className="day-name">{day}</div>
-                    <div className="day-date">Dinner</div>
-                    <div className="meal-slot">
-                      {suggestion ? (
-                        <>
-                          <div className="meal-name muted-meal">Not planned yet</div>
-                          <div className="meal-meta">Try {suggestion.name}</div>
-                          <button className="mini-link" onClick={() => setView("recipes")}>View recipe bank →</button>
-                        </>
-                      ) : (
-                        <button className="empty-slot" onClick={() => setView("recipes")}>+ Add recipes first</button>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-            <div className="coming-next">
-              <span>Next build</span>
-              The weekly planner will save these dinner slots to Supabase and feed the grocery list automatically.
-            </div>
-          </section>
+          <WeeklyPlanner
+            householdId={household.id}
+            recipes={recipes}
+            mealPlanItems={mealPlanItems}
+            weekStart={weekStart}
+            currentWeekStart={currentWeekStart}
+          />
         )}
 
         {view === "recipes" && (
@@ -223,7 +213,7 @@ export function KitchenDashboard({ household, recipes, displayName }: Props) {
               <div className="empty-state">
                 <div>🥘</div>
                 <h3>{recipes.length ? "No recipes match" : "Your recipe bank is ready"}</h3>
-                <p>{recipes.length ? "Try a different search or show all recipes." : "Add the meals you already love. We’ll use them to power the weekly planner next."}</p>
+                <p>{recipes.length ? "Try a different search or show all recipes." : "Add the meals you already love. They’ll appear immediately in your weekly planner."}</p>
                 {!recipes.length && <button className="primary" onClick={() => setShowAddRecipe(true)}>Add your first recipe</button>}
               </div>
             )}
@@ -240,8 +230,8 @@ export function KitchenDashboard({ household, recipes, displayName }: Props) {
             </div>
             <div className="empty-state grocery-empty">
               <div>🛒</div>
-              <h3>Recipes are connected. Planning is next.</h3>
-              <p>Once dinners are assigned to the week, Cook&apos;s Kitchen will combine their ingredients into one checkable list.</p>
+              <h3>Your weekly plan is now connected.</h3>
+              <p>The next build will combine ingredients from the recipes you planned into one shared, checkable grocery list.</p>
             </div>
           </section>
         )}
