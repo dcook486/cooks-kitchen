@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ edit?: string; saved?: string }>;
+  searchParams: Promise<{ edit?: string; saved?: string; imported?: string }>;
 };
 
 type Recipe = {
@@ -41,11 +41,11 @@ function instructionLines(value: unknown) {
   return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
 }
 
-function safeSourceUrl(value: string | null) {
+function safeWebUrl(value: string | null) {
   if (!value) return null;
   try {
     const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:" ? value : null;
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : null;
   } catch {
     return null;
   }
@@ -75,7 +75,8 @@ export default async function RecipePage({ params, searchParams }: Props) {
 
   const ingredients = ingredientLines(recipe.ingredients);
   const instructions = instructionLines(recipe.instructions);
-  const sourceUrl = safeSourceUrl(recipe.source_url);
+  const sourceUrl = safeWebUrl(recipe.source_url);
+  const imageUrl = safeWebUrl(recipe.image_url);
   const editing = query.edit === "1";
   const totalMinutes = (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
 
@@ -87,9 +88,17 @@ export default async function RecipePage({ params, searchParams }: Props) {
       </div>
 
       {query.saved === "1" && <div className="form-alert success recipe-save-alert">Recipe updated.</div>}
+      {query.imported === "1" && <div className="form-alert success recipe-save-alert">Recipe imported and added to your shared recipe bank.</div>}
 
       {!editing ? (
         <>
+          {imageUrl && (
+            <div className="recipe-hero-image">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt={recipe.name} />
+            </div>
+          )}
+
           <header className="recipe-detail-hero">
             <div className="recipe-detail-title">
               <p className="eyebrow">{recipe.is_favorite ? "⭐ FAMILY FAVORITE" : "SHARED RECIPE"}</p>
@@ -166,6 +175,7 @@ export default async function RecipePage({ params, searchParams }: Props) {
               <label>Cook minutes<input name="cook_minutes" type="number" min="0" inputMode="numeric" defaultValue={recipe.cook_minutes ?? ""} /></label>
               <label>Servings<input name="servings" type="number" min="0.5" step="0.5" inputMode="decimal" defaultValue={recipe.servings ?? ""} /></label>
             </div>
+            <label>Image URL<input name="image_url" type="url" defaultValue={recipe.image_url ?? ""} placeholder="https://…" /></label>
             <div className="form-grid two">
               <label>Tags<input name="tags" defaultValue={recipe.tags.join(", ")} placeholder="quick, mexican, freezer" /></label>
               <label>Dietary tags<input name="dietary_tags" defaultValue={recipe.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" /></label>

@@ -40,26 +40,32 @@ function webUrlOrNull(value: FormDataEntryValue | null) {
   }
 }
 
-async function authenticatedClient() {
+export async function saveImportedRecipe(formData: FormData) {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
-  if (error || !data?.claims?.sub) redirect("/login");
-  return supabase;
-}
+  const { data: claims, error: claimsError } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (claimsError || !userId) redirect("/login?next=/recipes/import");
 
-export async function updateRecipe(formData: FormData) {
-  const supabase = await authenticatedClient();
-  const id = clean(formData.get("id"));
+  const householdId = clean(formData.get("household_id"));
   const name = clean(formData.get("name"));
+  if (!householdId || !name) redirect("/recipes/import?error=Recipe%20name%20is%20required.");
 
-  if (!id || !name) return;
+  const { data: membership } = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("household_id", householdId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!membership) throw new Error("You do not have access to this household.");
 
   const ingredients = lines(formData.get("ingredients")).map((text) => ({ text }));
   const instructions = lines(formData.get("instructions"));
 
-  const { error } = await supabase
+  const { data: recipe, error } = await supabase
     .from("recipes")
-    .update({
+    .insert({
+      household_id: householdId,
       name,
       description: clean(formData.get("description")) || null,
       source_url: webUrlOrNull(formData.get("source_url")),
@@ -72,25 +78,13 @@ export async function updateRecipe(formData: FormData) {
       tags: list(formData.get("tags")),
       dietary_tags: list(formData.get("dietary_tags")),
       is_favorite: formData.get("is_favorite") === "on",
-      updated_at: new Date().toISOString(),
+      created_by: userId,
     })
-    .eq("id", id);
+    .select("id")
+    .single();
 
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/");
-  revalidatePath(`/recipes/${id}`);
-  redirect(`/recipes/${id}?saved=1`);
-}
-
-export async function deleteRecipeFromDetail(formData: FormData) {
-  const supabase = await authenticatedClient();
-  const id = clean(formData.get("id"));
-  if (!id) return;
-
-  const { error } = await supabase.from("recipes").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error || !recipe) throw new Error(error?.message ?? "Could not save imported recipe.");
 
   revalidatePath("/");
-  redirect("/?section=recipes");
+  redirect(`/recipes/${recipe.id}?imported=1`);
 }

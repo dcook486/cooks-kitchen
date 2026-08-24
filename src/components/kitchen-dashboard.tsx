@@ -83,7 +83,10 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
           <section>
             <div className="section-heading">
               <div><p className="eyebrow">YOUR SHARED RECIPE BANK</p><h2>Recipes</h2></div>
-              <button className="primary" onClick={() => setShowAddRecipe((value) => !value)}>{showAddRecipe ? "Close" : "+ Add recipe"}</button>
+              <div className="inline-actions">
+                <a className="secondary link-button" href="/recipes/import">Import from URL</a>
+                <button className="primary" onClick={() => setShowAddRecipe((value) => !value)}>{showAddRecipe ? "Close" : "+ Add recipe"}</button>
+              </div>
             </div>
 
             {showAddRecipe && (
