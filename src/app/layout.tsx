@@ -3,7 +3,6 @@ import { DM_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
 import "./live.css";
 import "./planner.css";
-import "./household.css";
 import "./recipe-detail.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
