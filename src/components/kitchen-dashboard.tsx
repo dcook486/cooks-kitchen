@@ -33,6 +33,12 @@ type Props = {
   shareError: string | null;
 };
 
+const views: Array<{ id: View; label: string; mobileLabel: string; icon: string }> = [
+  { id: "week", label: "This week", mobileLabel: "Week", icon: "▦" },
+  { id: "recipes", label: "Recipes", mobileLabel: "Recipes", icon: "⌑" },
+  { id: "household", label: "Household", mobileLabel: "Household", icon: "◉" },
+];
+
 function totalMinutes(recipe: Recipe) {
   const total = (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
   return total || null;
@@ -54,10 +60,25 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
     });
   }, [favoriteOnly, query, recipes]);
 
+  function selectView(nextView: View) {
+    setView(nextView);
+    const url = new URL(window.location.href);
+    if (nextView === "week") url.searchParams.delete("section");
+    else url.searchParams.set("section", nextView);
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function tabLabel(tab: View) {
+    if (tab === "recipes") return `Recipes · ${recipes.length}`;
+    if (tab === "household") return `Household · ${members.length}`;
+    return "This week";
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div>
+        <div className="brand-block">
           <p className="eyebrow">{household.name.toUpperCase()}</p>
           <h1>Cook&apos;s Kitchen</h1>
           <p className="welcome-line">Welcome back, {displayName}.</p>
@@ -68,22 +89,22 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
         </div>
       </header>
 
-      <nav className="tabs" aria-label="App sections">
-        {(["week", "recipes", "household"] as View[]).map((tab) => (
-          <button key={tab} className={`tab ${view === tab ? "active" : ""}`} onClick={() => setView(tab)}>
-            {tab === "week" ? "This week" : tab === "recipes" ? `Recipes · ${recipes.length}` : `Household · ${members.length}`}
+      <nav className="tabs desktop-tabs" aria-label="App sections">
+        {views.map((tab) => (
+          <button key={tab.id} className={`tab ${view === tab.id ? "active" : ""}`} onClick={() => selectView(tab.id)} aria-current={view === tab.id ? "page" : undefined}>
+            {tabLabel(tab.id)}
           </button>
         ))}
       </nav>
 
       <main>
-        {view === "week" && <WeeklyPlanner householdId={household.id} recipes={recipes} mealPlanItems={mealPlanItems} weekStart={weekStart} currentWeekStart={currentWeekStart} />}
+        {view === "week" && <WeeklyPlanner householdId={household.id} timeZone={household.timezone} recipes={recipes} mealPlanItems={mealPlanItems} weekStart={weekStart} currentWeekStart={currentWeekStart} />}
 
         {view === "recipes" && (
           <section>
             <div className="section-heading">
               <div><p className="eyebrow">YOUR SHARED RECIPE BANK</p><h2>Recipes</h2></div>
-              <div className="inline-actions">
+              <div className="inline-actions recipe-actions">
                 <a className="secondary link-button" href="/recipes/import">Import from URL</a>
                 <button className="primary" onClick={() => setShowAddRecipe((value) => !value)}>{showAddRecipe ? "Close" : "+ Add recipe"}</button>
               </div>
@@ -119,8 +140,8 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
             )}
 
             <div className="recipe-toolbar">
-              <input className="search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes, tags, dietary needs…" />
-              <button className={`secondary ${favoriteOnly ? "selected" : ""}`} onClick={() => setFavoriteOnly((value) => !value)}>⭐ Favorites</button>
+              <input className="search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes, tags, dietary needs…" aria-label="Search recipes" />
+              <button className={`secondary ${favoriteOnly ? "selected" : ""}`} onClick={() => setFavoriteOnly((value) => !value)} aria-pressed={favoriteOnly}>⭐ Favorites</button>
             </div>
 
             {visibleRecipes.length ? (
@@ -132,7 +153,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
                       <div className="recipe-card-top">
                         <form action={toggleFavorite}>
                           <input type="hidden" name="id" value={recipe.id} /><input type="hidden" name="next" value={String(!recipe.is_favorite)} />
-                          <button className="icon-button" title={recipe.is_favorite ? "Remove favorite" : "Add favorite"}>{recipe.is_favorite ? "⭐" : "☆"}</button>
+                          <button className="icon-button" title={recipe.is_favorite ? "Remove favorite" : "Add favorite"} aria-label={recipe.is_favorite ? `Remove ${recipe.name} from favorites` : `Add ${recipe.name} to favorites`}>{recipe.is_favorite ? "⭐" : "☆"}</button>
                         </form>
                         <span className="minutes">{minutes ? `${minutes} min` : `${ingredientCount(recipe)} ingredients`}</span>
                       </div>
@@ -157,6 +178,15 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
       </main>
 
       <footer className="foundation-note"><span>Live Supabase data</span>{household.name} · {household.timezone}</footer>
+
+      <nav className="mobile-bottom-nav" aria-label="App sections">
+        {views.map((tab) => (
+          <button key={tab.id} className={view === tab.id ? "active" : ""} onClick={() => selectView(tab.id)} aria-current={view === tab.id ? "page" : undefined}>
+            <span className="mobile-nav-icon" aria-hidden="true">{tab.icon}</span>
+            <span>{tab.mobileLabel}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
