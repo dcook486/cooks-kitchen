@@ -73,5 +73,7 @@ export default async function Home({ searchParams }: HomeProps) {
     mealPlanItems = items ?? [];
   }
 
-  return <KitchenDashboard household={household} recipes={recipes ?? []} displayName={profile?.display_name ?? "Cook"} mealPlanItems={mealPlanItems} weekStart={selectedWeekStart} currentWeekStart={currentWeekStart} members={members} invitations={invitations} role={membership.role} initialView={params.section === "household" ? "household" : "week"} generatedInviteToken={params.invite ?? null} joined={params.joined === "1"} shareError={params.share_error ?? null} />;
+  const initialView = params.section === "household" ? "household" : params.section === "recipes" ? "recipes" : "week";
+
+  return <KitchenDashboard household={household} recipes={recipes ?? []} displayName={profile?.display_name ?? "Cook"} mealPlanItems={mealPlanItems} weekStart={selectedWeekStart} currentWeekStart={currentWeekStart} members={members} invitations={invitations} role={membership.role} initialView={initialView} generatedInviteToken={params.invite ?? null} joined={params.joined === "1"} shareError={params.share_error ?? null} />;
 }
