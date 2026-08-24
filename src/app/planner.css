@@ -1,0 +1,107 @@
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fffefa;
+  color: var(--text);
+  padding: 10px 11px;
+  outline: none;
+  font: inherit;
+}
+
+select:focus {
+  border-color: #9eb5a4;
+  box-shadow: 0 0 0 3px rgba(63, 107, 83, 0.09);
+}
+
+.week-heading {
+  align-items: center;
+}
+
+.week-range {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.week-actions {
+  justify-content: flex-end;
+}
+
+.week-actions .secondary {
+  padding: 9px 11px;
+  font-size: 0.78rem;
+}
+
+.day-card.planned-day {
+  border-color: #ceddce;
+  background: linear-gradient(180deg, #fffdf8 0%, #fbfdf9 100%);
+}
+
+.meal-emoji {
+  color: var(--accent);
+  font-size: 1.2rem;
+  min-height: 24px;
+}
+
+.meal-picker {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #eee8df;
+  display: grid;
+  gap: 9px;
+}
+
+.meal-picker label {
+  min-width: 0;
+}
+
+.meal-picker select {
+  min-width: 0;
+  font-size: 0.76rem;
+}
+
+.save-meal {
+  width: 100%;
+  border: 1px solid #cad9cd;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--accent-2);
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.save-meal:hover {
+  background: #e4eee6;
+}
+
+@media (max-width: 980px) {
+  .week-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 660px) {
+  .week-heading {
+    align-items: stretch;
+  }
+
+  .week-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .week-actions .secondary {
+    text-align: center;
+  }
+
+  .day-card {
+    min-height: 0;
+  }
+
+  .meal-slot {
+    margin-top: 16px;
+    min-height: 88px;
+  }
+}
