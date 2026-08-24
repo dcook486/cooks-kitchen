@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { saveImportedRecipe } from "@/app/recipes/import/actions";
-import { extractRecipeFromUrl, type ImportedRecipe } from "@/lib/recipe-import";
+import { extractRecipeFromUrl, type ImportedRecipe } from "@/lib/recipe-import-fallback";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
