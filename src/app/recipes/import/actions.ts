@@ -69,7 +69,7 @@ export async function saveImportedRecipe(formData: FormData) {
       name,
       description: clean(formData.get("description")) || null,
       source_url: webUrlOrNull(formData.get("source_url")),
-      image_url: webUrlOrNull(formData.get("image_url")),
+      image_url: null,
       prep_minutes: numberOrNull(formData.get("prep_minutes")),
       cook_minutes: numberOrNull(formData.get("cook_minutes")),
       servings: numberOrNull(formData.get("servings")),

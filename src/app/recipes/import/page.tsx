@@ -94,12 +94,10 @@ export default async function ImportRecipePage({ searchParams }: Props) {
             <div className="form-alert import-warning" key={warning}>{warning}</div>
           ))}
 
-          {imported.image_url && (
-            <div className="import-image-preview">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imported.image_url} alt="Imported recipe preview" />
-            </div>
-          )}
+          <div className="import-photo-note">
+            <strong>Photos are yours.</strong>
+            <span>Cook&apos;s Kitchen won&apos;t copy the recipe website&apos;s image. After saving, you can upload your own photo of the dish.</span>
+          </div>
 
           <form className="recipe-edit-form" action={saveImportedRecipe}>
             <input type="hidden" name="household_id" value={membership.household_id} />
@@ -113,7 +111,6 @@ export default async function ImportRecipePage({ searchParams }: Props) {
               <label>Cook minutes<input name="cook_minutes" type="number" min="0" inputMode="numeric" defaultValue={imported.cook_minutes ?? ""} /></label>
               <label>Servings<input name="servings" type="number" min="0.5" step="0.5" inputMode="decimal" defaultValue={imported.servings ?? ""} /></label>
             </div>
-            <label>Image URL<input name="image_url" type="url" defaultValue={imported.image_url} placeholder="https://…" /></label>
             <div className="form-grid two">
               <label>Tags<input name="tags" defaultValue={imported.tags.join(", ")} placeholder="quick, mexican, freezer" /></label>
               <label>Dietary tags<input name="dietary_tags" defaultValue={imported.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" /></label>

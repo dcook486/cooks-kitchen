@@ -40,15 +40,29 @@ function webUrlOrNull(value: FormDataEntryValue | null) {
   }
 }
 
+function photoPathFromPublicUrl(value: string | null) {
+  if (!value) return null;
+  const marker = "/storage/v1/object/public/recipe-photos/";
+  const index = value.indexOf(marker);
+  if (index < 0) return null;
+  const encodedPath = value.slice(index + marker.length);
+  try {
+    return decodeURIComponent(encodedPath);
+  } catch {
+    return encodedPath;
+  }
+}
+
 async function authenticatedClient() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
-  if (error || !data?.claims?.sub) redirect("/login");
-  return supabase;
+  const userId = data?.claims?.sub;
+  if (error || !userId) redirect("/login");
+  return { supabase, userId };
 }
 
 export async function updateRecipe(formData: FormData) {
-  const supabase = await authenticatedClient();
+  const { supabase } = await authenticatedClient();
   const id = clean(formData.get("id"));
   const name = clean(formData.get("name"));
 
@@ -63,7 +77,6 @@ export async function updateRecipe(formData: FormData) {
       name,
       description: clean(formData.get("description")) || null,
       source_url: webUrlOrNull(formData.get("source_url")),
-      image_url: webUrlOrNull(formData.get("image_url")),
       prep_minutes: numberOrNull(formData.get("prep_minutes")),
       cook_minutes: numberOrNull(formData.get("cook_minutes")),
       servings: numberOrNull(formData.get("servings")),
@@ -83,13 +96,79 @@ export async function updateRecipe(formData: FormData) {
   redirect(`/recipes/${id}?saved=1`);
 }
 
-export async function deleteRecipeFromDetail(formData: FormData) {
-  const supabase = await authenticatedClient();
+export async function saveRecipePhotoPath(formData: FormData) {
+  const { supabase } = await authenticatedClient();
+  const id = clean(formData.get("id"));
+  const path = clean(formData.get("path"));
+  if (!id || !path) throw new Error("Missing recipe photo information.");
+
+  const { data: recipe, error: recipeError } = await supabase
+    .from("recipes")
+    .select("id, household_id, image_url")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (recipeError || !recipe) throw new Error("That recipe is not available to this household.");
+
+  const expectedPrefix = `${recipe.household_id}/${recipe.id}/`;
+  if (!path.startsWith(expectedPrefix) || path.includes("..")) throw new Error("Invalid recipe photo path.");
+
+  const oldPath = photoPathFromPublicUrl(recipe.image_url);
+  const { data: publicData } = supabase.storage.from("recipe-photos").getPublicUrl(path);
+
+  const { error } = await supabase
+    .from("recipes")
+    .update({ image_url: publicData.publicUrl, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  if (oldPath && oldPath !== path) {
+    await supabase.storage.from("recipe-photos").remove([oldPath]);
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/recipes/${id}`);
+}
+
+export async function removeRecipePhoto(formData: FormData) {
+  const { supabase } = await authenticatedClient();
   const id = clean(formData.get("id"));
   if (!id) return;
 
+  const { data: recipe, error: recipeError } = await supabase
+    .from("recipes")
+    .select("image_url")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (recipeError || !recipe) throw new Error("That recipe is not available to this household.");
+  const path = photoPathFromPublicUrl(recipe.image_url);
+
+  const { error } = await supabase
+    .from("recipes")
+    .update({ image_url: null, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  if (path) await supabase.storage.from("recipe-photos").remove([path]);
+
+  revalidatePath("/");
+  revalidatePath(`/recipes/${id}`);
+  redirect(`/recipes/${id}?photo_removed=1`);
+}
+
+export async function deleteRecipeFromDetail(formData: FormData) {
+  const { supabase } = await authenticatedClient();
+  const id = clean(formData.get("id"));
+  if (!id) return;
+
+  const { data: recipe } = await supabase.from("recipes").select("image_url").eq("id", id).maybeSingle();
+  const path = photoPathFromPublicUrl(recipe?.image_url ?? null);
+
   const { error } = await supabase.from("recipes").delete().eq("id", id);
   if (error) throw new Error(error.message);
+  if (path) await supabase.storage.from("recipe-photos").remove([path]);
 
   revalidatePath("/");
   redirect("/?section=recipes");

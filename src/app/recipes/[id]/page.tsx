@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { deleteRecipeFromDetail, updateRecipe } from "@/app/recipes/actions";
+import { deleteRecipeFromDetail, removeRecipePhoto, updateRecipe } from "@/app/recipes/actions";
+import { RecipePhotoUploader } from "@/components/recipe-photo-uploader";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ edit?: string; saved?: string; imported?: string }>;
+  searchParams: Promise<{ edit?: string; saved?: string; imported?: string; photo?: string; photo_removed?: string }>;
 };
 
 type Recipe = {
@@ -51,6 +52,11 @@ function safeWebUrl(value: string | null) {
   }
 }
 
+function recipePhotoUrl(value: string | null) {
+  const url = safeWebUrl(value);
+  return url?.includes("/storage/v1/object/public/recipe-photos/") ? url : null;
+}
+
 export default async function RecipePage({ params, searchParams }: Props) {
   const { id } = await params;
   const query = await searchParams;
@@ -76,7 +82,7 @@ export default async function RecipePage({ params, searchParams }: Props) {
   const ingredients = ingredientLines(recipe.ingredients);
   const instructions = instructionLines(recipe.instructions);
   const sourceUrl = safeWebUrl(recipe.source_url);
-  const imageUrl = safeWebUrl(recipe.image_url);
+  const imageUrl = recipePhotoUrl(recipe.image_url);
   const editing = query.edit === "1";
   const totalMinutes = (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
 
@@ -89,16 +95,11 @@ export default async function RecipePage({ params, searchParams }: Props) {
 
       {query.saved === "1" && <div className="form-alert success recipe-save-alert">Recipe updated.</div>}
       {query.imported === "1" && <div className="form-alert success recipe-save-alert">Recipe imported and added to your shared recipe bank.</div>}
+      {query.photo === "1" && <div className="form-alert success recipe-save-alert">Recipe photo saved.</div>}
+      {query.photo_removed === "1" && <div className="form-alert success recipe-save-alert">Recipe photo removed.</div>}
 
       {!editing ? (
         <>
-          {imageUrl && (
-            <div className="recipe-hero-image">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt={recipe.name} />
-            </div>
-          )}
-
           <header className="recipe-detail-hero">
             <div className="recipe-detail-title">
               <p className="eyebrow">{recipe.is_favorite ? "⭐ FAMILY FAVORITE" : "SHARED RECIPE"}</p>
@@ -120,6 +121,31 @@ export default async function RecipePage({ params, searchParams }: Props) {
             <div><span>Total</span><strong>{totalMinutes ? `${totalMinutes} min` : "—"}</strong></div>
             <div><span>Servings</span><strong>{recipe.servings ?? "—"}</strong></div>
           </section>
+
+          {imageUrl ? (
+            <section className="recipe-photo-block">
+              <div className="recipe-user-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt={recipe.name} />
+              </div>
+              <div className="recipe-photo-controls">
+                <RecipePhotoUploader recipeId={recipe.id} householdId={recipe.household_id} hasPhoto />
+                <form action={removeRecipePhoto}>
+                  <input type="hidden" name="id" value={recipe.id} />
+                  <button className="text-button" type="submit">Remove photo</button>
+                </form>
+              </div>
+            </section>
+          ) : (
+            <section className="recipe-photo-prompt">
+              <div>
+                <p className="eyebrow">OPTIONAL PHOTO</p>
+                <h3>Add your own photo</h3>
+                <p>Use a photo of your family&apos;s version instead of relying on an image hosted by the recipe website.</p>
+              </div>
+              <RecipePhotoUploader recipeId={recipe.id} householdId={recipe.household_id} />
+            </section>
+          )}
 
           <div className="recipe-cook-grid">
             <section className="recipe-cook-card ingredients-card">
@@ -175,7 +201,6 @@ export default async function RecipePage({ params, searchParams }: Props) {
               <label>Cook minutes<input name="cook_minutes" type="number" min="0" inputMode="numeric" defaultValue={recipe.cook_minutes ?? ""} /></label>
               <label>Servings<input name="servings" type="number" min="0.5" step="0.5" inputMode="decimal" defaultValue={recipe.servings ?? ""} /></label>
             </div>
-            <label>Image URL<input name="image_url" type="url" defaultValue={recipe.image_url ?? ""} placeholder="https://…" /></label>
             <div className="form-grid two">
               <label>Tags<input name="tags" defaultValue={recipe.tags.join(", ")} placeholder="quick, mexican, freezer" /></label>
               <label>Dietary tags<input name="dietary_tags" defaultValue={recipe.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" /></label>
