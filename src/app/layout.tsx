@@ -4,6 +4,7 @@ import "./globals.css";
 import "./live.css";
 import "./planner.css";
 import "./recipe-detail.css";
+import "./sharing.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
