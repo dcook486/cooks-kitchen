@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useFormStatus } from "react-dom";
 import { saveDinnerPlan } from "@/app/actions";
 
 type Recipe = {
@@ -22,6 +23,7 @@ type MealPlanItem = {
 
 type Props = {
   householdId: string;
+  timeZone: string;
   recipes: Recipe[];
   mealPlanItems: MealPlanItem[];
   weekStart: string;
@@ -38,6 +40,19 @@ function addDays(value: string, amount: number) {
   const date = dateFromIso(value);
   date.setUTCDate(date.getUTCDate() + amount);
   return date.toISOString().slice(0, 10);
+}
+
+function localIsoDate(timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return `${year}-${month}-${day}`;
 }
 
 function formatShortDate(value: string) {
@@ -70,27 +85,34 @@ function selectionFor(item: MealPlanItem | undefined) {
 }
 
 function labelFor(item: MealPlanItem | undefined, recipes: Recipe[]) {
-  if (!item) return { title: "Not planned yet", meta: "Choose a dinner below", emoji: "○" };
+  if (!item) return { title: "Not planned yet", meta: "Choose a dinner below", emoji: "○", recipeId: null as string | null };
 
-  if (item.status === "leftovers") return { title: "Leftovers", meta: "Use what’s already in the fridge", emoji: "↻" };
-  if (item.status === "eating_out") return { title: "Eating out", meta: "No cooking tonight", emoji: "🍽️" };
-  if (item.status === "skipped") return { title: "No dinner planned", meta: "Intentionally left open", emoji: "—" };
+  if (item.status === "leftovers") return { title: "Leftovers", meta: "Use what’s already in the fridge", emoji: "↻", recipeId: null };
+  if (item.status === "eating_out") return { title: "Eating out", meta: "No cooking tonight", emoji: "🍽️", recipeId: null };
+  if (item.status === "skipped") return { title: "No dinner planned", meta: "Intentionally left open", emoji: "—", recipeId: null };
 
   const recipe = recipes.find((entry) => entry.id === item.recipe_id);
-  if (!recipe) return { title: item.custom_label || "Planned dinner", meta: "Saved to this week", emoji: "✓" };
+  if (!recipe) return { title: item.custom_label || "Planned dinner", meta: "Saved to this week", emoji: "✓", recipeId: null };
 
   const minutes = (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
   return {
     title: recipe.name,
     meta: minutes ? `${minutes} min total` : "From your recipe bank",
     emoji: "✓",
+    recipeId: recipe.id,
   };
 }
 
-export function WeeklyPlanner({ householdId, recipes, mealPlanItems, weekStart, currentWeekStart }: Props) {
+function AutoSaveStatus() {
+  const { pending } = useFormStatus();
+  return <span className={`auto-save-status ${pending ? "saving" : ""}`}>{pending ? "Saving…" : "Auto-saves"}</span>;
+}
+
+export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, weekStart, currentWeekStart }: Props) {
   const previousWeek = addDays(weekStart, -7);
   const nextWeek = addDays(weekStart, 7);
   const isCurrentWeek = weekStart === currentWeekStart;
+  const today = localIsoDate(timeZone);
 
   return (
     <section>
@@ -100,7 +122,7 @@ export function WeeklyPlanner({ householdId, recipes, mealPlanItems, weekStart, 
           <h2>{isCurrentWeek ? "This week" : `Week of ${formatShortDate(weekStart)}`}</h2>
           <p className="week-range">{formatWeekLabel(weekStart)}</p>
         </div>
-        <div className="inline-actions week-actions">
+        <div className="inline-actions week-actions" aria-label="Week navigation">
           <Link className="secondary link-button" href={`/?week=${previousWeek}`}>← Previous</Link>
           {!isCurrentWeek && <Link className="secondary link-button" href="/">This week</Link>}
           <Link className="secondary link-button" href={`/?week=${nextWeek}`}>Next →</Link>
@@ -112,15 +134,23 @@ export function WeeklyPlanner({ householdId, recipes, mealPlanItems, weekStart, 
           const mealDate = addDays(weekStart, index);
           const item = mealPlanItems.find((entry) => entry.meal_date === mealDate && entry.meal_type === "dinner");
           const summary = labelFor(item, recipes);
+          const isToday = mealDate === today;
 
           return (
-            <article className={`day-card ${item ? "planned-day" : ""}`} key={mealDate}>
-              <div className="day-name">{day}</div>
-              <div className="day-date">{formatShortDate(mealDate)}</div>
+            <article className={`day-card ${item ? "planned-day" : ""} ${isToday ? "today-card" : ""}`} key={mealDate}>
+              <div className="day-card-heading">
+                <div>
+                  <div className="day-name">{day}</div>
+                  <div className="day-date">{formatShortDate(mealDate)}</div>
+                </div>
+                {isToday && <span className="today-pill">Today</span>}
+              </div>
 
               <div className="meal-slot">
                 <div className="meal-emoji">{summary.emoji}</div>
-                <div className={`meal-name ${item ? "" : "muted-meal"}`}>{summary.title}</div>
+                <div className={`meal-name ${item ? "" : "muted-meal"}`}>
+                  {summary.recipeId ? <Link className="meal-name-link" href={`/recipes/${summary.recipeId}`}>{summary.title}</Link> : summary.title}
+                </div>
                 <div className="meal-meta">{summary.meta}</div>
               </div>
 
@@ -130,7 +160,12 @@ export function WeeklyPlanner({ householdId, recipes, mealPlanItems, weekStart, 
                 <input type="hidden" name="meal_date" value={mealDate} />
                 <label>
                   Dinner
-                  <select name="selection" defaultValue={selectionFor(item)}>
+                  <select
+                    name="selection"
+                    defaultValue={selectionFor(item)}
+                    aria-label={`Dinner for ${day}`}
+                    onChange={(event) => event.currentTarget.form?.requestSubmit()}
+                  >
                     <option value="none">No plan</option>
                     <option value="leftovers">Leftovers</option>
                     <option value="eating_out">Eating out</option>
@@ -141,7 +176,7 @@ export function WeeklyPlanner({ householdId, recipes, mealPlanItems, weekStart, 
                     ))}
                   </select>
                 </label>
-                <button className="save-meal" type="submit">Save</button>
+                <AutoSaveStatus />
               </form>
             </article>
           );
