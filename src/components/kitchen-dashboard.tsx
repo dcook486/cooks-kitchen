@@ -84,7 +84,6 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
           <p className="welcome-line">Welcome back, {displayName}.</p>
         </div>
         <div className="account-actions">
-          <span className="sync-pill">● Live &amp; shared</span>
           <form action={logout}><button className="secondary">Sign out</button></form>
         </div>
       </header>
@@ -176,8 +175,6 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
 
         {view === "household" && <HouseholdSharing householdId={household.id} householdName={household.name} role={role} members={members} invitations={invitations} generatedInviteToken={generatedInviteToken} joined={joined} shareError={shareError} />}
       </main>
-
-      <footer className="foundation-note"><span>Live Supabase data</span>{household.name} · {household.timezone}</footer>
 
       <nav className="mobile-bottom-nav" aria-label="App sections">
         {views.map((tab) => (
