@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addRecipe, deleteRecipe, logout, toggleFavorite } from "@/app/actions";
+import { addRecipe, logout, toggleFavorite } from "@/app/actions";
 import { WeeklyPlanner } from "@/components/weekly-planner";
 import { HouseholdSharing } from "@/components/household-sharing";
 
@@ -133,12 +133,12 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
                         </form>
                         <span className="minutes">{minutes ? `${minutes} min` : `${ingredientCount(recipe)} ingredients`}</span>
                       </div>
-                      <h3>{recipe.name}</h3>
+                      <h3><a className="recipe-open-link" href={`/recipes/${recipe.id}`}>{recipe.name}</a></h3>
                       <p>{recipe.description || "A family recipe ready for the weekly plan."}</p>
                       <div className="tag-row">{[...recipe.tags, ...recipe.dietary_tags].slice(0, 4).map((tag) => <span className="badge" key={tag}>{tag}</span>)}</div>
                       <div className="recipe-card-footer">
                         <span>{recipe.servings ? `Serves ${recipe.servings}` : "Shared recipe"}</span>
-                        <form action={deleteRecipe}><input type="hidden" name="id" value={recipe.id} /><button className="danger-link">Delete</button></form>
+                        <a className="recipe-card-open" href={`/recipes/${recipe.id}`}>Open recipe →</a>
                       </div>
                     </article>
                   );
