@@ -181,3 +181,93 @@ export async function deleteRecipe(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/");
 }
+
+export async function saveDinnerPlan(formData: FormData) {
+  const { supabase, userId } = await currentUserId();
+  const householdId = clean(formData.get("household_id"));
+  const weekStart = clean(formData.get("week_start"));
+  const mealDate = clean(formData.get("meal_date"));
+  const selection = clean(formData.get("selection"));
+
+  if (!householdId || !weekStart || !mealDate || !selection) return;
+
+  const { data: membership } = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("household_id", householdId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!membership) throw new Error("You do not have access to this household.");
+
+  const { data: existingPlan, error: planLookupError } = await supabase
+    .from("meal_plans")
+    .select("id")
+    .eq("household_id", householdId)
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  if (planLookupError) throw new Error(planLookupError.message);
+
+  let mealPlanId = existingPlan?.id;
+
+  if (selection === "none") {
+    if (mealPlanId) {
+      const { error } = await supabase
+        .from("meal_plan_items")
+        .delete()
+        .eq("meal_plan_id", mealPlanId)
+        .eq("meal_date", mealDate)
+        .eq("meal_type", "dinner");
+      if (error) throw new Error(error.message);
+    }
+    revalidatePath("/");
+    return;
+  }
+
+  if (!mealPlanId) {
+    const { data: newPlan, error } = await supabase
+      .from("meal_plans")
+      .insert({ household_id: householdId, week_start: weekStart, created_by: userId })
+      .select("id")
+      .single();
+
+    if (error || !newPlan) throw new Error(error?.message ?? "Could not create meal plan.");
+    mealPlanId = newPlan.id;
+  }
+
+  let status: "planned" | "leftovers" | "eating_out" | "skipped" = "planned";
+  let recipeId: string | null = null;
+
+  if (selection.startsWith("recipe:")) {
+    recipeId = selection.slice("recipe:".length);
+    const { data: recipe, error } = await supabase
+      .from("recipes")
+      .select("id")
+      .eq("id", recipeId)
+      .eq("household_id", householdId)
+      .maybeSingle();
+
+    if (error || !recipe) throw new Error("That recipe is not available in this household.");
+  } else if (selection === "leftovers" || selection === "eating_out" || selection === "skipped") {
+    status = selection;
+  } else {
+    throw new Error("Unknown meal selection.");
+  }
+
+  const { error } = await supabase.from("meal_plan_items").upsert(
+    {
+      meal_plan_id: mealPlanId,
+      meal_date: mealDate,
+      meal_type: "dinner",
+      recipe_id: recipeId,
+      custom_label: null,
+      status,
+      notes: null,
+    },
+    { onConflict: "meal_plan_id,meal_date,meal_type" },
+  );
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+}
