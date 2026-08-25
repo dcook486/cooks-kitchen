@@ -15,6 +15,7 @@ import "./household-identity.css";
 import "./landing.css";
 import "./landing-brand.css";
 import "./app-brand.css";
+import "./onboarding-refresh.css";
 import "./avatar-fix.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
