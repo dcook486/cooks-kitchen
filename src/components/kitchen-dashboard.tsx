@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addRecipe, logout, toggleFavorite } from "@/app/actions";
+import { addRecipe, toggleFavorite } from "@/app/actions";
+import { AccountMenu } from "@/components/account-menu";
 import { WeeklyPlanner } from "@/components/weekly-planner";
 import { HouseholdSharing } from "@/components/household-sharing";
 
@@ -83,9 +84,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
           <h1>Cook&apos;s Kitchen</h1>
           <p className="welcome-line">Welcome back, {displayName}.</p>
         </div>
-        <div className="account-actions">
-          <form action={logout}><button className="secondary">Sign out</button></form>
-        </div>
+        <AccountMenu displayName={displayName} />
       </header>
 
       <nav className="tabs desktop-tabs" aria-label="App sections">
