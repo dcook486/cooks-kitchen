@@ -4,14 +4,16 @@
 
 .landing-brand {
   padding: 6px 0;
-  transform: translateY(7px);
+  transform: translateY(4px);
 }
 
 .landing-brand-badge {
   display: block;
-  width: clamp(250px, 23vw, 320px);
-  height: auto;
+  width: 82px;
+  height: 82px;
   object-fit: contain;
+  border-radius: 50%;
+  box-shadow: 0 10px 26px rgba(45, 64, 80, .08);
 }
 
 .landing-hero-copy h1,
@@ -94,11 +96,12 @@
 
 @media (max-width: 720px) {
   .landing-brand {
-    transform: translateY(4px);
+    transform: translateY(2px);
   }
 
   .landing-brand-badge {
-    width: 205px;
+    width: 64px;
+    height: 64px;
   }
 
   .landing-cta-badge {
