@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { login, signup } from "@/app/actions";
 import { createClient } from "@/lib/supabase/server";
+import GoogleSignInButton from "./google-sign-in-button";
 
 type Props = {
   searchParams: Promise<{ error?: string; message?: string; mode?: string; next?: string; invite?: string }>;
@@ -50,6 +51,26 @@ export default async function LoginPage({ searchParams }: Props) {
 
         {params.error && <div className="form-alert error">{params.error}</div>}
         {params.message && <div className="form-alert success">{params.message}</div>}
+
+        <GoogleSignInButton next={next} />
+
+        <div
+          aria-hidden="true"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            margin: "17px 0",
+            color: "var(--muted)",
+            fontSize: ".7rem",
+            fontWeight: 800,
+            letterSpacing: ".08em",
+          }}
+        >
+          <span style={{ height: 1, background: "var(--line)", flex: 1 }} />
+          <span>OR</span>
+          <span style={{ height: 1, background: "var(--line)", flex: 1 }} />
+        </div>
 
         <form className="stack-form">
           <input type="hidden" name="next" value={next} />
