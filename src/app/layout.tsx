@@ -6,6 +6,7 @@ import "./planner.css";
 import "./recipe-detail.css";
 import "./sharing.css";
 import "./profile.css";
+import "./household-refresh.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
