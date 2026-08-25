@@ -247,12 +247,11 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                   aria-haspopup="dialog"
                 >
                   <span className="meal-picker-button-copy">
-                    <span>{hasPlan ? "Dinner" : "Dinner"}</span>
-                    <strong>{hasPlan ? summary.title : "Choose dinner"}</strong>
+                    <strong>{hasPlan ? "Change dinner" : "Choose dinner"}</strong>
                   </span>
-                  <span className="meal-picker-button-action" aria-hidden="true">{hasPlan ? "Change" : "+"}</span>
+                  <span className="meal-picker-button-action" aria-hidden="true">{hasPlan ? "→" : "+"}</span>
                 </button>
-                <span className={`auto-save-status ${saving ? "saving" : ""}`}>{saving ? "Saving…" : hasPlan ? "Saved" : ""}</span>
+                {saving && <span className="auto-save-status saving">Saving…</span>}
               </div>
             </article>
           );
