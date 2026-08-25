@@ -5,6 +5,7 @@ import "./live.css";
 import "./planner.css";
 import "./meal-card-fix.css";
 import "./month-view.css";
+import "./quick-add.css";
 import "./recipe-detail.css";
 import "./sharing.css";
 import "./profile.css";
