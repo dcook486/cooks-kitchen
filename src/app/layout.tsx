@@ -10,6 +10,7 @@ import "./recipe-detail.css";
 import "./sharing.css";
 import "./profile.css";
 import "./household-refresh.css";
+import "./household-identity.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });

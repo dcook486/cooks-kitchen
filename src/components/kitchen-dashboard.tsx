@@ -8,7 +8,7 @@ import { WeeklyPlanner } from "@/components/weekly-planner";
 type View = "week" | "recipes";
 type PlannerMode = "week" | "month";
 
-type Household = { id: string; name: string; timezone: string };
+type Household = { id: string; name: string; kitchen_name: string; tagline: string | null; timezone: string };
 type Recipe = {
   id: string; name: string; description: string | null; source_url: string | null; image_url: string | null;
   prep_minutes: number | null; cook_minutes: number | null; servings: number | null; ingredients: unknown;
@@ -73,8 +73,8 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
       <header className="topbar">
         <div className="brand-block">
           <p className="eyebrow">{household.name.toUpperCase()}</p>
-          <h1>Cook&apos;s Kitchen</h1>
-          <p className="welcome-line">Welcome back, {displayName}.</p>
+          <h1>{household.kitchen_name || "Cook's Kitchen"}</h1>
+          {household.tagline && <p className="kitchen-tagline">{household.tagline}</p>}
         </div>
         <AccountMenu displayName={displayName} />
       </header>
