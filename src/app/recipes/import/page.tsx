@@ -7,11 +7,16 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 type Props = {
-  searchParams: Promise<{ url?: string | string[]; error?: string | string[] }>;
+  searchParams: Promise<{ url?: string | string[]; error?: string | string[]; next?: string | string[] }>;
 };
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function localPathOrNull(value: string | undefined) {
+  const path = value?.trim() ?? "";
+  return path.startsWith("/") && !path.startsWith("//") ? path : null;
 }
 
 export default async function ImportRecipePage({ searchParams }: Props) {
@@ -36,6 +41,8 @@ export default async function ImportRecipePage({ searchParams }: Props) {
     .maybeSingle();
 
   const requestedUrl = first(params.url)?.trim() ?? "";
+  const requestedNext = localPathOrNull(first(params.next));
+  const backHref = requestedNext ?? "/?section=recipes";
   let imported: ImportedRecipe | null = null;
   let extractionError = first(params.error) ?? "";
 
@@ -50,7 +57,7 @@ export default async function ImportRecipePage({ searchParams }: Props) {
   return (
     <main className="recipe-detail-shell import-recipe-shell">
       <div className="recipe-detail-nav">
-        <Link className="back-link" href="/?section=recipes">← Recipe bank</Link>
+        <Link className="back-link" href={backHref}>{requestedNext ? "← Back to setup" : "← Recipe bank"}</Link>
         <span>{household?.name ?? "Shared household"}</span>
       </div>
 
@@ -63,6 +70,7 @@ export default async function ImportRecipePage({ searchParams }: Props) {
       </header>
 
       <form className="import-url-card" method="get">
+        {requestedNext && <input type="hidden" name="next" value={requestedNext} />}
         <label htmlFor="recipe-url">Recipe URL</label>
         <div className="import-url-row">
           <input
@@ -101,6 +109,7 @@ export default async function ImportRecipePage({ searchParams }: Props) {
 
           <form className="recipe-edit-form" action={saveImportedRecipe}>
             <input type="hidden" name="household_id" value={membership.household_id} />
+            {requestedNext && <input type="hidden" name="next" value={requestedNext} />}
             <div className="form-grid two">
               <label>Recipe name<input name="name" defaultValue={imported.name} required /></label>
               <label>Source URL<input name="source_url" type="url" defaultValue={imported.source_url} /></label>
@@ -122,8 +131,8 @@ export default async function ImportRecipePage({ searchParams }: Props) {
             <div className="form-footer recipe-edit-footer">
               <label className="favorite-check"><input type="checkbox" name="is_favorite" /> ⭐ Family favorite</label>
               <div className="inline-actions">
-                <Link className="secondary link-button" href="/?section=recipes">Cancel</Link>
-                <button className="primary" type="submit">Save to recipe bank</button>
+                <Link className="secondary link-button" href={backHref}>Cancel</Link>
+                <button className="primary" type="submit">{requestedNext ? "Save & return to setup" : "Save to recipe bank"}</button>
               </div>
             </div>
           </form>
