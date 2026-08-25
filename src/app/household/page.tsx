@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AccountMenu } from "@/components/account-menu";
+import { HouseholdIdentitySettings } from "@/components/household-identity-settings";
 import { HouseholdSharing } from "@/components/household-sharing";
 
 type Props = {
@@ -8,6 +9,8 @@ type Props = {
     invite?: string;
     joined?: string;
     share_error?: string;
+    identity_saved?: string;
+    identity_error?: string;
   }>;
 };
 
@@ -27,7 +30,7 @@ export default async function HouseholdPage({ searchParams }: Props) {
   if (!membership) redirect("/onboarding");
 
   const [{ data: household }, { data: profile }, { data: memberRows }] = await Promise.all([
-    supabase.from("households").select("id, name").eq("id", membership.household_id).single(),
+    supabase.from("households").select("id, name, kitchen_name, tagline").eq("id", membership.household_id).single(),
     supabase.from("profiles").select("display_name").eq("id", userId).maybeSingle(),
     supabase
       .from("household_members")
@@ -70,6 +73,7 @@ export default async function HouseholdPage({ searchParams }: Props) {
 
   const params = await searchParams;
   const displayName = profile?.display_name ?? "Cook";
+  const kitchenName = household.kitchen_name || "Cook's Kitchen";
 
   return (
     <div className="app-shell household-page-shell">
@@ -83,6 +87,16 @@ export default async function HouseholdPage({ searchParams }: Props) {
       </header>
 
       <main className="household-page-main">
+        <HouseholdIdentitySettings
+          householdId={household.id}
+          householdName={household.name}
+          kitchenName={kitchenName}
+          tagline={household.tagline}
+          isOwner={membership.role === "owner"}
+          saved={params.identity_saved === "1"}
+          error={params.identity_error ?? null}
+        />
+
         <HouseholdSharing
           householdId={household.id}
           householdName={household.name}
