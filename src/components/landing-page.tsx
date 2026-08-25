@@ -3,13 +3,11 @@ export function LandingPage() {
     <main className="landing-shell">
       <header className="landing-nav">
         <a className="landing-brand" href="/" aria-label="Cook's Kitchen home">
-          <span className="landing-brand-mark" aria-hidden="true">
-            <img src="/cooks-kitchen-mark.svg" alt="" />
-          </span>
-          <span className="landing-wordmark">
-            <span>Cook&apos;s</span>
-            <span>Kitchen</span>
-          </span>
+          <img
+            className="landing-brand-badge"
+            src="/cooks-kitchen-badge.svg"
+            alt="Cook's Kitchen — Plan together. Eat together."
+          />
         </a>
         <div className="landing-nav-actions">
           <a className="landing-text-link" href="/login?next=/">Sign in</a>
@@ -89,7 +87,12 @@ export function LandingPage() {
       </section>
 
       <section className="landing-cta">
-        <img className="landing-cta-mark" src="/cooks-kitchen-mark.svg" alt="" aria-hidden="true" />
+        <img
+          className="landing-cta-badge"
+          src="/cooks-kitchen-badge.svg"
+          alt=""
+          aria-hidden="true"
+        />
         <p className="eyebrow">YOUR KITCHEN, YOUR PLAN</p>
         <h2>Make dinner planning one less thing to think about.</h2>
         <p>Create your household, give your kitchen a name, and start with the meals you already love.</p>
