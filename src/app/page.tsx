@@ -79,7 +79,7 @@ export default async function Home({ searchParams }: HomeProps) {
   if (!membership) redirect("/onboarding");
 
   const [{ data: household }, { data: recipes }, { data: profile }] = await Promise.all([
-    supabase.from("households").select("id, name, timezone").eq("id", membership.household_id).single(),
+    supabase.from("households").select("id, name, kitchen_name, tagline, timezone").eq("id", membership.household_id).single(),
     supabase.from("recipes").select("*").eq("household_id", membership.household_id).order("is_favorite", { ascending: false }).order("name", { ascending: true }),
     supabase.from("profiles").select("display_name").eq("id", userId).maybeSingle(),
   ]);
