@@ -34,6 +34,30 @@ function safeNext(value: FormDataEntryValue | null) {
   return next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
+function optionalNext(value: FormDataEntryValue | null) {
+  const next = clean(value);
+  return next.startsWith("/") && !next.startsWith("//") ? next : null;
+}
+
+function safeTimeZone(value: FormDataEntryValue | null) {
+  const timeZone = clean(value) || "America/Chicago";
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date());
+    return timeZone;
+  } catch {
+    return "America/Chicago";
+  }
+}
+
+function mondayForIso(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  const weekday = date.getUTCDay();
+  date.setUTCDate(date.getUTCDate() + (weekday === 0 ? -6 : 1 - weekday));
+  return date.toISOString().slice(0, 10);
+}
+
 async function currentUserId() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -110,7 +134,9 @@ export async function logout() {
 
 export async function createHousehold(formData: FormData) {
   const { supabase, userId } = await currentUserId();
-  const name = clean(formData.get("name")) || "Cook Family";
+  const name = clean(formData.get("name")) || "My Family";
+  const kitchenName = clean(formData.get("kitchen_name")) || "My Kitchen";
+  const timeZone = safeTimeZone(formData.get("timezone"));
 
   const { data: existing } = await supabase
     .from("households")
@@ -124,12 +150,18 @@ export async function createHousehold(formData: FormData) {
   if (!householdId) {
     const { data: household, error } = await supabase
       .from("households")
-      .insert({ name, timezone: "America/Chicago", created_by: userId })
+      .insert({ name, kitchen_name: kitchenName, timezone: timeZone, created_by: userId })
       .select("id")
       .single();
 
     if (error || !household) redirect(`/onboarding?error=${encodeURIComponent(error?.message ?? "Could not create household")}`);
     householdId = household.id;
+  } else {
+    const { error } = await supabase
+      .from("households")
+      .update({ name, kitchen_name: kitchenName, timezone: timeZone })
+      .eq("id", householdId);
+    if (error) redirect(`/onboarding?error=${encodeURIComponent(error.message)}`);
   }
 
   const { error: memberError } = await supabase.from("household_members").upsert(
@@ -140,13 +172,14 @@ export async function createHousehold(formData: FormData) {
   if (memberError) redirect(`/onboarding?error=${encodeURIComponent(memberError.message)}`);
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/onboarding?step=recipes");
 }
 
 export async function addRecipe(formData: FormData) {
   const { supabase, userId } = await currentUserId();
   const householdId = clean(formData.get("household_id"));
   const name = clean(formData.get("name"));
+  const next = optionalNext(formData.get("next"));
   if (!householdId || !name) return;
 
   const ingredients = lines(formData.get("ingredients")).map((text) => ({ text }));
@@ -170,6 +203,8 @@ export async function addRecipe(formData: FormData) {
 
   if (error) throw new Error(error.message);
   revalidatePath("/");
+  revalidatePath("/onboarding");
+  if (next) redirect(next);
 }
 
 export async function toggleFavorite(formData: FormData) {
@@ -196,9 +231,10 @@ export async function deleteRecipe(formData: FormData) {
 export async function saveDinnerPlan(formData: FormData) {
   const { supabase, userId } = await currentUserId();
   const householdId = clean(formData.get("household_id"));
-  const weekStart = clean(formData.get("week_start"));
   const mealDate = clean(formData.get("meal_date"));
+  const weekStart = clean(formData.get("week_start")) || mondayForIso(mealDate) || "";
   const selection = clean(formData.get("selection"));
+  const next = optionalNext(formData.get("next"));
   if (!householdId || !weekStart || !mealDate || !selection) return;
 
   const { data: membership } = await supabase.from("household_members").select("household_id").eq("household_id", householdId).eq("user_id", userId).maybeSingle();
@@ -215,6 +251,7 @@ export async function saveDinnerPlan(formData: FormData) {
       if (error) throw new Error(error.message);
     }
     revalidatePath("/");
+    if (next) redirect(next);
     return;
   }
 
@@ -244,6 +281,8 @@ export async function saveDinnerPlan(formData: FormData) {
 
   if (error) throw new Error(error.message);
   revalidatePath("/");
+  revalidatePath("/onboarding");
+  if (next) redirect(next);
 }
 
 export async function createHouseholdInvitation(formData: FormData) {
