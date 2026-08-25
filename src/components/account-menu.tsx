@@ -82,7 +82,7 @@ export function AccountMenu({ displayName }: Props) {
 
         <div className="account-menu-links">
           <a href="/profile"><span>Profile</span><span aria-hidden="true">→</span></a>
-          <a href="/?section=household"><span>Household</span><span aria-hidden="true">→</span></a>
+          <a href="/household"><span>Household</span><span aria-hidden="true">→</span></a>
         </div>
 
         <form action={logout} className="account-signout-form">

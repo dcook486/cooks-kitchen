@@ -4,9 +4,8 @@ import { useMemo, useState } from "react";
 import { addRecipe, toggleFavorite } from "@/app/actions";
 import { AccountMenu } from "@/components/account-menu";
 import { WeeklyPlanner } from "@/components/weekly-planner";
-import { HouseholdSharing } from "@/components/household-sharing";
 
-type View = "week" | "recipes" | "household";
+type View = "week" | "recipes";
 
 type Household = { id: string; name: string; timezone: string };
 type Recipe = {
@@ -15,8 +14,6 @@ type Recipe = {
   instructions: unknown; tags: string[]; dietary_tags: string[]; is_favorite: boolean;
 };
 type MealPlanItem = { id: string; meal_date: string; meal_type: string; recipe_id: string | null; custom_label: string | null; status: string; notes: string | null };
-type Member = { user_id: string; role: string; created_at: string; display_name: string };
-type Invitation = { id: string; invited_email: string; token: string; expires_at: string; created_at: string };
 
 type Props = {
   household: Household;
@@ -25,19 +22,12 @@ type Props = {
   mealPlanItems: MealPlanItem[];
   weekStart: string;
   currentWeekStart: string;
-  members: Member[];
-  invitations: Invitation[];
-  role: string;
   initialView: View;
-  generatedInviteToken: string | null;
-  joined: boolean;
-  shareError: string | null;
 };
 
 const views: Array<{ id: View; label: string; mobileLabel: string; icon: string }> = [
   { id: "week", label: "This week", mobileLabel: "Week", icon: "▦" },
   { id: "recipes", label: "Recipes", mobileLabel: "Recipes", icon: "⌑" },
-  { id: "household", label: "Household", mobileLabel: "Household", icon: "◉" },
 ];
 
 function totalMinutes(recipe: Recipe) {
@@ -46,7 +36,7 @@ function totalMinutes(recipe: Recipe) {
 }
 function ingredientCount(recipe: Recipe) { return Array.isArray(recipe.ingredients) ? recipe.ingredients.length : 0; }
 
-export function KitchenDashboard({ household, recipes, displayName, mealPlanItems, weekStart, currentWeekStart, members, invitations, role, initialView, generatedInviteToken, joined, shareError }: Props) {
+export function KitchenDashboard({ household, recipes, displayName, mealPlanItems, weekStart, currentWeekStart, initialView }: Props) {
   const [view, setView] = useState<View>(initialView);
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [query, setQuery] = useState("");
@@ -72,7 +62,6 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
 
   function tabLabel(tab: View) {
     if (tab === "recipes") return `Recipes · ${recipes.length}`;
-    if (tab === "household") return `Household · ${members.length}`;
     return "This week";
   }
 
@@ -171,8 +160,6 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
             )}
           </section>
         )}
-
-        {view === "household" && <HouseholdSharing householdId={household.id} householdName={household.name} role={role} members={members} invitations={invitations} generatedInviteToken={generatedInviteToken} joined={joined} shareError={shareError} />}
       </main>
 
       <nav className="mobile-bottom-nav" aria-label="App sections">
