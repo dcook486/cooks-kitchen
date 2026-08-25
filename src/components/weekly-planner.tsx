@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import type { FormEvent } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { saveDinnerPlan } from "@/app/actions";
+import { quickAddRecipeAndPlan } from "@/app/quick-add-actions";
 
 type PlannerMode = "week" | "month";
 
@@ -172,9 +174,15 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const [mode, setMode] = useState<PlannerMode>(initialMode);
   const [pickerDay, setPickerDay] = useState<PickerDay>(null);
   const [query, setQuery] = useState("");
+  const [plannerRecipes, setPlannerRecipes] = useState<Recipe[]>(recipes);
   const [optimisticSelections, setOptimisticSelections] = useState<Record<string, string>>({});
   const [savingDate, setSavingDate] = useState<string | null>(null);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickUrl, setQuickUrl] = useState("");
+  const [quickError, setQuickError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [quickAdding, startQuickAddTransition] = useTransition();
 
   const activeItem = pickerDay
     ? mealPlanItems.find((entry) => entry.meal_date === pickerDay.mealDate && entry.meal_type === "dinner")
@@ -185,9 +193,13 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
 
   const filteredRecipes = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return recipes;
-    return recipes.filter((recipe) => recipe.name.toLowerCase().includes(needle));
-  }, [query, recipes]);
+    if (!needle) return plannerRecipes;
+    return plannerRecipes.filter((recipe) => recipe.name.toLowerCase().includes(needle));
+  }, [query, plannerRecipes]);
+
+  useEffect(() => {
+    setPlannerRecipes(recipes);
+  }, [recipes]);
 
   useEffect(() => {
     if (!pickerDay) return;
@@ -220,6 +232,10 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
 
   function openPicker(day: string, mealDate: string) {
     setQuery("");
+    setShowQuickAdd(false);
+    setQuickName("");
+    setQuickUrl("");
+    setQuickError("");
     setPickerDay({ day, mealDate });
   }
 
@@ -246,6 +262,46 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
       } finally {
         setSavingDate((current) => current === mealDate ? null : current);
       }
+    });
+  }
+
+  function submitQuickAdd(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!pickerDay || quickAdding) return;
+
+    const name = quickName.trim();
+    const sourceUrl = quickUrl.trim();
+    if (!name && !sourceUrl) {
+      setQuickError("Enter a recipe name or paste a recipe URL.");
+      return;
+    }
+
+    const mealDate = pickerDay.mealDate;
+    const formData = new FormData();
+    formData.set("household_id", householdId);
+    formData.set("week_start", mondayFor(mealDate));
+    formData.set("meal_date", mealDate);
+    formData.set("name", name);
+    formData.set("source_url", sourceUrl);
+    setQuickError("");
+
+    startQuickAddTransition(async () => {
+      const result = await quickAddRecipeAndPlan(formData);
+      if (!result.ok) {
+        setQuickError(result.error);
+        return;
+      }
+
+      setPlannerRecipes((current) => {
+        if (current.some((recipe) => recipe.id === result.recipe.id)) return current;
+        return [...current, result.recipe].sort((a, b) => a.name.localeCompare(b.name));
+      });
+      setOptimisticSelections((current) => ({ ...current, [mealDate]: `recipe:${result.recipe.id}` }));
+      setPickerDay(null);
+      setShowQuickAdd(false);
+      setQuickName("");
+      setQuickUrl("");
+      setQuickError("");
     });
   }
 
@@ -290,7 +346,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
             const mealDate = addDays(weekStart, index);
             const item = mealPlanItems.find((entry) => entry.meal_date === mealDate && entry.meal_type === "dinner");
             const selection = optimisticSelections[mealDate] ?? selectionFor(item);
-            const summary = summaryForSelection(selection, recipes);
+            const summary = summaryForSelection(selection, plannerRecipes);
             const isToday = mealDate === today;
             const hasPlan = selection !== "none";
             const saving = savingDate === mealDate && isPending;
@@ -337,7 +393,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
             {monthDates.map((mealDate) => {
               const item = mealPlanItems.find((entry) => entry.meal_date === mealDate && entry.meal_type === "dinner");
               const selection = optimisticSelections[mealDate] ?? selectionFor(item);
-              const summary = summaryForSelection(selection, recipes);
+              const summary = summaryForSelection(selection, plannerRecipes);
               const hasPlan = selection !== "none";
               const inMonth = mealDate.slice(0, 7) === normalizedMonth.slice(0, 7);
               const isToday = mealDate === today;
@@ -373,25 +429,25 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
         </div>
       )}
 
-      {!recipes.length && (
+      {!plannerRecipes.length && (
         <div className="coming-next">
           <span>Recipe bank empty</span>
-          Add at least one recipe to start assigning dinners. Leftovers and Eating out are available anytime.
+          Add a recipe right from the dinner picker, or use Leftovers and Eating out anytime.
         </div>
       )}
 
       {pickerDay && (
         <div className="meal-modal-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setPickerDay(null);
+          if (event.target === event.currentTarget && !quickAdding) setPickerDay(null);
         }}>
           <div className="meal-modal" role="dialog" aria-modal="true" aria-labelledby="meal-modal-title">
             <div className="meal-modal-header">
               <div>
                 <p className="eyebrow">{pickerDay.day.toUpperCase()} · {formatShortDate(pickerDay.mealDate).toUpperCase()}</p>
                 <h3 id="meal-modal-title">What’s for dinner?</h3>
-                <p>Pick a recipe or choose a quick option for the night.</p>
+                <p>Pick a recipe, choose a quick option, or add something new.</p>
               </div>
-              <button className="meal-modal-close" type="button" onClick={() => setPickerDay(null)} aria-label="Close dinner picker">×</button>
+              <button className="meal-modal-close" type="button" onClick={() => setPickerDay(null)} aria-label="Close dinner picker" disabled={quickAdding}>×</button>
             </div>
 
             <div className="meal-modal-body">
@@ -402,6 +458,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                     className={`meal-choice-card quick ${activeSelection === choice.value ? "selected" : ""}`}
                     type="button"
                     onClick={() => chooseDinner(choice.value)}
+                    disabled={quickAdding}
                   >
                     <span className="meal-choice-icon" aria-hidden="true">{choice.icon}</span>
                     <span className="meal-choice-copy">
@@ -415,10 +472,10 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
 
               <div className="meal-modal-divider"><span>FROM YOUR RECIPES</span></div>
 
-              {recipes.length > 5 && (
+              {plannerRecipes.length > 5 && (
                 <label className="meal-recipe-search">
                   <span className="meal-recipe-search-icon" aria-hidden="true">⌕</span>
-                  <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes…" aria-label="Search recipes" />
+                  <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes…" aria-label="Search recipes" disabled={quickAdding} />
                 </label>
               )}
 
@@ -433,6 +490,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                         className={`meal-choice-card recipe ${selected ? "selected" : ""}`}
                         type="button"
                         onClick={() => chooseDinner(value)}
+                        disabled={quickAdding}
                       >
                         <span className="meal-recipe-mark" aria-hidden="true">{recipe.name.slice(0, 1).toUpperCase()}</span>
                         <span className="meal-choice-copy">
@@ -447,15 +505,66 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
               ) : (
                 <div className="meal-modal-empty">
                   <span>⌕</span>
-                  <strong>No recipes found</strong>
-                  <p>Try a different search.</p>
+                  <strong>{plannerRecipes.length ? "No recipes found" : "No recipes yet"}</strong>
+                  <p>{plannerRecipes.length ? "Try a different search or add a new recipe below." : "Add your first recipe without leaving the planner."}</p>
                 </div>
               )}
+
+              <div className="meal-quick-add-block">
+                {!showQuickAdd ? (
+                  <button className="meal-quick-add-trigger" type="button" onClick={() => { setShowQuickAdd(true); setQuickError(""); }}>
+                    <span aria-hidden="true">＋</span> Add a new recipe
+                  </button>
+                ) : (
+                  <form className="meal-quick-add-form" onSubmit={submitQuickAdd}>
+                    <div className="meal-quick-add-heading">
+                      <div>
+                        <strong>Add & plan it</strong>
+                        <span>Paste a recipe link to import the details, or just enter a name for now.</span>
+                      </div>
+                    </div>
+                    <label>
+                      Recipe URL <span>(optional)</span>
+                      <input
+                        type="url"
+                        value={quickUrl}
+                        onChange={(event) => setQuickUrl(event.target.value)}
+                        placeholder="https://example.com/recipe"
+                        disabled={quickAdding}
+                      />
+                    </label>
+                    <label>
+                      Recipe name <span>(optional if URL is provided)</span>
+                      <input
+                        type="text"
+                        value={quickName}
+                        onChange={(event) => setQuickName(event.target.value)}
+                        placeholder="Blackened ranch chicken"
+                        disabled={quickAdding}
+                      />
+                    </label>
+                    {quickError && <p className="meal-quick-add-error" role="alert">{quickError}</p>}
+                    <div className="meal-quick-add-actions">
+                      <button
+                        className="meal-quick-add-cancel"
+                        type="button"
+                        disabled={quickAdding}
+                        onClick={() => { setShowQuickAdd(false); setQuickError(""); setQuickName(""); setQuickUrl(""); }}
+                      >
+                        Cancel
+                      </button>
+                      <button className="meal-quick-add-submit" type="submit" disabled={quickAdding}>
+                        {quickAdding ? (quickUrl.trim() ? "Importing…" : "Adding…") : "Add & plan dinner"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
 
-            {activeSelection !== "none" && (
+            {activeSelection !== "none" && !showQuickAdd && (
               <div className="meal-modal-footer">
-                <button className="meal-clear-button" type="button" onClick={() => chooseDinner("none")}>Clear dinner plan</button>
+                <button className="meal-clear-button" type="button" onClick={() => chooseDinner("none")} disabled={quickAdding}>Clear dinner plan</button>
               </div>
             )}
           </div>
