@@ -303,6 +303,7 @@ select:focus,
   }
 
   .mobile-bottom-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     border-color: var(--line);
     background: rgba(255,255,255,.94);
     box-shadow: 0 16px 40px rgba(45, 64, 80, .13);
