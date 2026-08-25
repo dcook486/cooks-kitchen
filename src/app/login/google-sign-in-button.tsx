@@ -5,9 +5,10 @@ import { createClient } from "@/lib/supabase/client";
 
 type Props = {
   next: string;
+  label?: string;
 };
 
-export default function GoogleSignInButton({ next }: Props) {
+export default function GoogleSignInButton({ next, label = "Continue with Google" }: Props) {
   const [loading, setLoading] = useState(false);
 
   async function handleGoogleSignIn() {
@@ -41,16 +42,14 @@ export default function GoogleSignInButton({ next }: Props) {
 
   return (
     <button
-      className="secondary wide"
+      className="secondary wide google-sign-in-button"
       type="button"
       onClick={handleGoogleSignIn}
       disabled={loading}
       aria-busy={loading}
     >
-      <span aria-hidden="true" style={{ marginRight: 8, fontWeight: 900 }}>
-        G
-      </span>
-      {loading ? "Opening Google…" : "Continue with Google"}
+      <span className="google-sign-in-mark" aria-hidden="true">G</span>
+      {loading ? "Opening Google…" : label}
     </button>
   );
 }
