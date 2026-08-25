@@ -11,13 +11,14 @@ import "./sharing.css";
 import "./profile.css";
 import "./household-refresh.css";
 import "./household-identity.css";
+import "./landing.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
   title: "Cook's Kitchen",
-  description: "A shared weekly meal planner for the Cook family.",
+  description: "A shared meal planner for households to save recipes and decide what's for dinner together.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
