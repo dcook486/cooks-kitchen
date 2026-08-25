@@ -18,7 +18,7 @@ import "./app-brand.css";
 import "./onboarding-refresh.css";
 import "./avatar-fix.css";
 
-// Deployment retry touch after Vercel rate limiting.
+// Deployment retry touch after Vercel rate limiting (second retry).
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
 const brandSans = Inter({ subsets: ["latin"], variable: "--font-brand-sans" });
