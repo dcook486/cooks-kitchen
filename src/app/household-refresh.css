@@ -1,0 +1,172 @@
+.household-page-shell { padding-top: 34px; }
+.household-page-main { margin-top: 28px; }
+.household-page-topbar { align-items: flex-start; }
+.household-page-topbar h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
+
+.google-invite-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-top: 16px;
+  padding: 12px 13px;
+  border: 1px solid #dbe5dc;
+  border-radius: 14px;
+  background: #f5f9f5;
+}
+.google-invite-mark,
+.google-sign-in-mark {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  background: white;
+  border: 1px solid #d9ded9;
+  color: #3f6b53;
+  font-weight: 900;
+}
+.google-invite-note > div { display: grid; gap: 3px; }
+.google-invite-note strong { font-size: .79rem; }
+.google-invite-note span:not(.google-invite-mark) { color: var(--muted); font-size: .72rem; line-height: 1.45; }
+
+.invite-success-card-enhanced { align-items: start; }
+.invite-success-card-enhanced .invite-success-icon { margin-top: 2px; }
+.invite-steps {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+.invite-steps div {
+  min-height: 72px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid #dfe8df;
+  border-radius: 13px;
+  background: rgba(255,255,255,.66);
+}
+.invite-steps span {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent-2);
+  color: var(--accent);
+  font-size: .66rem;
+  font-weight: 900;
+}
+.invite-steps strong { font-size: .72rem; line-height: 1.35; }
+.invite-actions-row {
+  grid-column: 2;
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.invite-actions-row .link-button,
+.invite-actions-row button { min-height: 42px; }
+.pending-invite-actions { justify-content: flex-end; }
+.pending-invite-actions .link-button { min-height: auto; align-items: center; }
+
+.google-sign-in-button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+}
+.google-sign-in-mark { width: 25px; height: 25px; border-radius: 8px; }
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 17px 0;
+  color: var(--muted);
+}
+.auth-divider span { height: 1px; background: var(--line); flex: 1; }
+.auth-divider strong { font-size: .65rem; letter-spacing: .09em; }
+.invite-google-helper {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-top: 11px;
+  padding: 10px 11px;
+  border-radius: 12px;
+  background: var(--accent-2);
+  color: var(--accent);
+}
+.invite-google-helper > span { font-weight: 900; }
+.invite-google-helper p { margin: 0; font-size: .73rem; line-height: 1.45; }
+.invite-google-helper strong { color: var(--text); }
+
+.invite-landing-page { background: radial-gradient(circle at 50% 0%, #fff9ed 0, transparent 34%), var(--bg); }
+.refreshed-invite-card { width: min(560px, 100%); }
+.refreshed-invite-card h1 { font-size: clamp(2.25rem, 7vw, 3.25rem); }
+.invite-household-mark {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+  border-radius: 20px;
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 850;
+  font-size: 1.25rem;
+  box-shadow: 0 14px 30px rgba(63,107,83,.2);
+}
+.invite-lede { margin-bottom: 18px !important; }
+.invite-account-summary {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  margin: 18px 0;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #faf7f0;
+}
+.invite-account-summary span { color: var(--muted); font-size: .67rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.invite-account-summary strong { font-size: .88rem; }
+.invite-account-summary small { color: var(--muted); font-size: .7rem; margin-top: 2px; }
+.invite-ready-note {
+  display: flex;
+  gap: 11px;
+  text-align: left;
+  padding: 13px 14px;
+  border: 1px solid #cedfd1;
+  border-radius: 14px;
+  background: var(--accent-2);
+}
+.invite-ready-note > span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-weight: 900;
+}
+.invite-ready-note div { display: grid; gap: 3px; }
+.invite-ready-note strong { font-size: .82rem; }
+.invite-ready-note p { margin: 0; color: var(--muted); font-size: .73rem; }
+.invite-wrong-account > p { color: var(--muted); font-size: .78rem; line-height: 1.5; }
+
+@media (max-width: 700px) {
+  .household-page-shell { padding-top: 24px; }
+  .household-page-topbar { gap: 16px; }
+  .household-page-main { margin-top: 20px; }
+  .invite-steps { grid-column: 1 / -1; grid-template-columns: 1fr; }
+  .invite-actions-row { grid-column: 1 / -1; }
+  .invite-actions-row > * { flex: 1 1 160px; }
+  .pending-invite-actions { justify-content: flex-start; width: 100%; }
+  .pending-invite-actions > * { flex: 0 0 auto; }
+}
