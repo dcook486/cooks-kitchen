@@ -1,0 +1,316 @@
+/* Main app branding aligned with the public landing page */
+:root {
+  --bg: #f8f7f4;
+  --panel: #ffffff;
+  --text: #2d4050;
+  --muted: #6f7b82;
+  --line: #e3dfdd;
+  --accent: #738372;
+  --accent-2: #e6ebe4;
+  --warm: #e97b56;
+  --shadow: 0 16px 42px rgba(45, 64, 80, 0.07);
+}
+
+body {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(233, 123, 86, .08), transparent 28%),
+    radial-gradient(circle at 7% 30%, rgba(115, 131, 114, .08), transparent 30%),
+    var(--bg);
+  color: var(--text);
+}
+
+.app-shell {
+  max-width: 1380px;
+  padding: 40px 5vw 80px;
+  font-family: var(--font-brand-sans), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.app-shell h1,
+.app-shell h2,
+.app-shell h3,
+.meal-modal h3 {
+  font-family: var(--font-brand-serif), "Libre Baskerville", Georgia, serif;
+  color: var(--text);
+}
+
+.app-shell .eyebrow {
+  color: var(--accent);
+  font-family: var(--font-brand-sans), Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.brand-block h1 {
+  color: var(--text);
+  letter-spacing: -0.035em;
+}
+
+.kitchen-tagline,
+.week-range {
+  color: var(--muted);
+}
+
+.primary,
+.app-shell .primary {
+  background: #2d4050;
+  color: #fff;
+  border-radius: 14px;
+  box-shadow: 0 11px 24px rgba(45, 64, 80, .16);
+}
+
+.primary:hover,
+.app-shell .primary:hover {
+  background: #223440;
+  filter: none;
+}
+
+.secondary,
+.app-shell .secondary {
+  background: rgba(255,255,255,.78);
+  border-color: var(--line);
+  color: var(--text);
+  border-radius: 14px;
+  box-shadow: 0 5px 16px rgba(45, 64, 80, .035);
+}
+
+.secondary:hover,
+.secondary.selected,
+.app-shell .secondary:hover,
+.app-shell .secondary.selected {
+  background: var(--accent-2);
+  border-color: #c9d2c7;
+  color: var(--text);
+}
+
+.tabs {
+  border-bottom-color: var(--line);
+}
+
+.tab {
+  color: var(--muted);
+  font-family: var(--font-brand-sans), Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.tab.active {
+  color: var(--text);
+  border-color: var(--warm);
+}
+
+.day-card,
+.recipe-card {
+  background: rgba(255,255,255,.82);
+  border-color: var(--line);
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(45, 64, 80, .05);
+}
+
+.day-card:hover,
+.recipe-card:hover {
+  border-color: #d3cecb;
+}
+
+.day-card.planned-day {
+  border-color: #c9d2c7;
+  background: linear-gradient(180deg, #fbfcfa 0%, #f5f7f4 100%);
+}
+
+.day-card.today-card {
+  border-color: rgba(233, 123, 86, .55);
+  box-shadow: 0 16px 38px rgba(233, 123, 86, .10);
+}
+
+.today-pill {
+  background: var(--warm);
+}
+
+.meal-name-link:hover,
+.text-button,
+.mini-link,
+.recipe-card-open,
+.recipe-open-link:hover {
+  color: var(--accent);
+}
+
+.empty-slot,
+.empty-state {
+  border-color: #d9d3cf;
+  background: rgba(255,255,255,.48);
+}
+
+.badge,
+.recipe-icon,
+.icon-button,
+.account-avatar {
+  background: var(--accent-2);
+  color: var(--accent);
+}
+
+.recipe-form {
+  background: linear-gradient(180deg, #fffaf8 0%, #fbf7f4 100%);
+  border-color: rgba(233, 123, 86, .28);
+  box-shadow: 0 12px 32px rgba(45, 64, 80, .05);
+}
+
+input,
+textarea,
+select,
+.search-input,
+.meal-recipe-search input,
+.meal-quick-add-form input {
+  background: rgba(255,255,255,.86);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.meal-recipe-search input:focus,
+.meal-quick-add-form input:focus {
+  border-color: #9eae9c;
+  box-shadow: 0 0 0 3px rgba(115, 131, 114, .11);
+  outline: none;
+}
+
+.meal-picker-button,
+.meal-choice-card,
+.meal-modal,
+.account-menu-trigger,
+.account-popover {
+  border-color: var(--line);
+  background: rgba(255,255,255,.9);
+}
+
+.meal-picker-button:hover,
+.meal-choice-card:hover {
+  border-color: #b9c6b7;
+  background: #fbfcfa;
+}
+
+.meal-picker-button.has-selection,
+.meal-choice-card.selected,
+.meal-quick-add-form,
+.meal-quick-add-trigger {
+  border-color: #c9d2c7;
+  background: var(--accent-2);
+}
+
+.meal-picker-button-action,
+.meal-choice-card.selected .meal-recipe-mark,
+.meal-choice-check {
+  background: var(--accent);
+  color: #fff;
+}
+
+.meal-modal-header {
+  background: linear-gradient(180deg, #ffffff 0%, #f8f7f4 100%);
+}
+
+.meal-modal-footer {
+  background: #f8f7f4;
+}
+
+.meal-recipe-mark {
+  background: #fae9e2;
+  color: var(--warm);
+}
+
+.planner-view-toggle {
+  background: #f0eeea;
+  border-color: var(--line);
+  border-radius: 14px;
+}
+
+.planner-view-toggle button.active {
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 3px 10px rgba(45, 64, 80, .07);
+}
+
+.month-calendar-shell {
+  border-color: var(--line);
+  border-radius: 24px;
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 20px 54px rgba(45, 64, 80, .08);
+}
+
+.month-weekdays {
+  background: #f0eeea;
+  border-bottom-color: var(--line);
+}
+
+.month-weekdays span {
+  color: var(--accent);
+}
+
+.month-day {
+  background: rgba(255,255,255,.92);
+  border-right-color: #ebe7e4;
+  border-bottom-color: #ebe7e4;
+}
+
+.month-day:hover {
+  background: #fbfcfa;
+  box-shadow: inset 0 0 0 1px #c9d2c7;
+}
+
+.month-day.outside-month {
+  background: #f8f7f4;
+}
+
+.month-day.today {
+  background: #fffaf8;
+  box-shadow: inset 0 0 0 2px rgba(233, 123, 86, .62);
+}
+
+.month-day.today .month-day-number {
+  background: var(--warm);
+  color: #fff;
+}
+
+.month-today-dot {
+  color: var(--warm);
+}
+
+.month-meal-pill {
+  background: #f5f7f4;
+  border-color: #cfd8cd;
+  color: var(--text);
+}
+
+.month-meal-pill.eating-out {
+  background: #fff5f1;
+  border-color: #f0d4c9;
+  color: #8f4f3a;
+}
+
+.meal-quick-add-submit {
+  border-color: #2d4050;
+  background: #2d4050;
+}
+
+.account-menu-trigger:hover {
+  border-color: #c9d2c7;
+  background: #fff;
+}
+
+.account-menu-links a:hover {
+  background: var(--accent-2);
+  color: var(--text);
+}
+
+@media (max-width: 660px) {
+  .app-shell {
+    padding: 28px 16px 112px;
+  }
+
+  .mobile-bottom-nav {
+    border-color: var(--line);
+    background: rgba(255,255,255,.94);
+    box-shadow: 0 16px 40px rgba(45, 64, 80, .13);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-bottom-nav button.active {
+    background: var(--accent-2);
+    color: var(--text);
+  }
+}
