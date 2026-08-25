@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, Fraunces } from "next/font/google";
+import { DM_Sans, Fraunces, Inter, Libre_Baskerville } from "next/font/google";
 import "./globals.css";
 import "./live.css";
 import "./planner.css";
@@ -12,19 +12,25 @@ import "./profile.css";
 import "./household-refresh.css";
 import "./household-identity.css";
 import "./landing.css";
+import "./landing-brand.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
+const brandSans = Inter({ subsets: ["latin"], variable: "--font-brand-sans" });
+const brandSerif = Libre_Baskerville({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-brand-serif" });
 
 export const metadata: Metadata = {
   title: "Cook's Kitchen",
   description: "A shared meal planner for households to save recipes and decide what's for dinner together.",
+  icons: {
+    icon: "/cooks-kitchen-mark.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${serif.variable}`}>{children}</body>
+      <body className={`${sans.variable} ${serif.variable} ${brandSans.variable} ${brandSerif.variable}`}>{children}</body>
     </html>
   );
 }
