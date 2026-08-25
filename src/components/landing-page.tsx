@@ -5,7 +5,7 @@ export function LandingPage() {
         <a className="landing-brand" href="/" aria-label="Cook's Kitchen home">
           <img
             className="landing-brand-badge"
-            src="/cooks-kitchen-horizontal.webp"
+            src="/cooks-kitchen-horizontal-v2.webp"
             alt="Cook's Kitchen"
           />
         </a>
@@ -39,7 +39,7 @@ export function LandingPage() {
           <div className="landing-preview" aria-label="Example weekly dinner plan">
             <div className="landing-preview-top">
               <div className="landing-preview-title">
-                <span className="landing-preview-mini-mark" aria-hidden="true"><img src="/cooks-kitchen-mark.svg" alt="" /></span>
+                <span className="landing-preview-mini-mark" aria-hidden="true"><img src="/cooks-kitchen-circle-v2.webp" alt="" /></span>
                 <div>
                   <p className="eyebrow">THE PLAN</p>
                   <h2>This week</h2>
@@ -89,7 +89,7 @@ export function LandingPage() {
       <section className="landing-cta">
         <img
           className="landing-cta-badge"
-          src="/cooks-kitchen-badge.svg"
+          src="/cooks-kitchen-circle-v2.webp"
           alt=""
           aria-hidden="true"
         />
@@ -101,7 +101,7 @@ export function LandingPage() {
 
       <footer className="landing-footer">
         <div className="landing-footer-brand">
-          <img src="/cooks-kitchen-mark.svg" alt="" aria-hidden="true" />
+          <img src="/cooks-kitchen-circle-v2.webp" alt="" aria-hidden="true" />
           <strong>Cook&apos;s Kitchen</strong>
         </div>
         <span>Plan together. Eat together.</span>
