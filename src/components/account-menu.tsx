@@ -18,7 +18,13 @@ function safeAvatarUrl(value: unknown) {
   if (typeof value !== "string") return null;
   try {
     const url = new URL(value);
-    return url.protocol === "https:" ? url.toString() : null;
+    if (url.protocol !== "https:") return null;
+
+    let avatarUrl = url.toString();
+    if (url.hostname.endsWith("googleusercontent.com")) {
+      avatarUrl = avatarUrl.replace(/=s\d+(?:-c)?(?:-[a-z0-9-]+)?$/i, "=s256");
+    }
+    return avatarUrl;
   } catch {
     return null;
   }
