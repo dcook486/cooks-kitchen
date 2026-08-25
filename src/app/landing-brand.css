@@ -3,13 +3,13 @@
 }
 
 .landing-brand {
-  padding: 10px 0;
+  padding: 6px 0;
 }
 
 .landing-brand-badge {
   display: block;
-  width: 86px;
-  height: 86px;
+  width: clamp(250px, 23vw, 320px);
+  height: auto;
   object-fit: contain;
 }
 
@@ -93,8 +93,7 @@
 
 @media (max-width: 720px) {
   .landing-brand-badge {
-    width: 64px;
-    height: 64px;
+    width: 205px;
   }
 
   .landing-cta-badge {
