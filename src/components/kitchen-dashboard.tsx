@@ -6,7 +6,7 @@ import { AccountMenu } from "@/components/account-menu";
 import { WeeklyPlanner } from "@/components/weekly-planner";
 
 type View = "week" | "recipes";
-type PlannerMode = "week" | "month";
+type PlannerMode = "day" | "week" | "month";
 
 type Household = { id: string; name: string; kitchen_name: string; tagline: string | null; timezone: string };
 type Recipe = {
@@ -23,6 +23,7 @@ type Props = {
   mealPlanItems: MealPlanItem[];
   weekStart: string;
   currentWeekStart: string;
+  dayAnchor: string;
   monthAnchor: string;
   initialPlannerMode: PlannerMode;
   initialView: View;
@@ -39,7 +40,7 @@ function totalMinutes(recipe: Recipe) {
 }
 function ingredientCount(recipe: Recipe) { return Array.isArray(recipe.ingredients) ? recipe.ingredients.length : 0; }
 
-export function KitchenDashboard({ household, recipes, displayName, mealPlanItems, weekStart, currentWeekStart, monthAnchor, initialPlannerMode, initialView }: Props) {
+export function KitchenDashboard({ household, recipes, displayName, mealPlanItems, weekStart, currentWeekStart, dayAnchor, monthAnchor, initialPlannerMode, initialView }: Props) {
   const [view, setView] = useState<View>(initialView);
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [query, setQuery] = useState("");
@@ -88,7 +89,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
       </nav>
 
       <main>
-        {view === "week" && <WeeklyPlanner householdId={household.id} timeZone={household.timezone} recipes={recipes} mealPlanItems={mealPlanItems} weekStart={weekStart} currentWeekStart={currentWeekStart} monthAnchor={monthAnchor} initialMode={initialPlannerMode} />}
+        {view === "week" && <WeeklyPlanner householdId={household.id} timeZone={household.timezone} recipes={recipes} mealPlanItems={mealPlanItems} weekStart={weekStart} currentWeekStart={currentWeekStart} dayAnchor={dayAnchor} monthAnchor={monthAnchor} initialMode={initialPlannerMode} />}
 
         {view === "recipes" && (
           <section>
