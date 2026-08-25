@@ -3,6 +3,7 @@ import { DM_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
 import "./live.css";
 import "./planner.css";
+import "./meal-card-fix.css";
 import "./recipe-detail.css";
 import "./sharing.css";
 import "./profile.css";

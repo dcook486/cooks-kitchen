@@ -1,0 +1,22 @@
+.meal-picker-button {
+  justify-content: center;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.meal-picker-button-action {
+  display: none;
+}
+
+.meal-picker-button-copy {
+  width: 100%;
+  text-align: center;
+}
+
+.meal-picker-button-copy strong {
+  display: block;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  font-size: .76rem;
+}
