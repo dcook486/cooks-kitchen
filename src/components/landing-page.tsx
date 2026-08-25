@@ -2,25 +2,12 @@ export function LandingPage() {
   return (
     <main className="landing-shell">
       <header className="landing-nav">
-        <a className="landing-brand landing-brand-lockup" href="/" aria-label="Cook's Kitchen home">
+        <a className="landing-brand" href="/" aria-label="Cook's Kitchen home">
           <img
-            className="landing-brand-emblem"
-            src="/cooks-kitchen-circle-v2.webp"
-            width={160}
-            height={160}
-            alt=""
-            aria-hidden="true"
+            className="landing-brand-badge"
+            src="/cooks-kitchen-horizontal-v2.webp"
+            alt="Cook's Kitchen"
           />
-          <span className="landing-brand-type" aria-hidden="true">
-            <span className="landing-brand-cooks">Cook&apos;s</span>
-            <span className="landing-brand-kitchen-line">
-              <span className="landing-brand-rule" />
-              <span className="landing-brand-heart">♥</span>
-              <span className="landing-brand-kitchen">KITCHEN</span>
-              <span className="landing-brand-heart">♥</span>
-              <span className="landing-brand-rule" />
-            </span>
-          </span>
         </a>
         <div className="landing-nav-actions">
           <a className="landing-text-link" href="/login?next=/">Sign in</a>
