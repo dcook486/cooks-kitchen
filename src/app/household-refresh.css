@@ -161,6 +161,7 @@
 .invite-wrong-account > p { color: var(--muted); font-size: .78rem; line-height: 1.5; }
 
 @media (max-width: 700px) {
+  .mobile-bottom-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .household-page-shell { padding-top: 24px; }
   .household-page-topbar { gap: 16px; }
   .household-page-main { margin-top: 20px; }
