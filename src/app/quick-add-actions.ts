@@ -11,8 +11,17 @@ function clean(value: FormDataEntryValue | null) {
 export type QuickAddedRecipe = {
   id: string;
   name: string;
+  description: string | null;
+  source_url: string | null;
+  image_url: string | null;
   prep_minutes: number | null;
   cook_minutes: number | null;
+  servings: number | null;
+  ingredients: unknown;
+  instructions: unknown;
+  tags: string[];
+  dietary_tags: string[];
+  is_favorite: boolean;
 };
 
 type QuickAddResult =
@@ -79,7 +88,7 @@ export async function quickAddRecipeAndPlan(formData: FormData): Promise<QuickAd
       is_favorite: false,
       created_by: userId,
     })
-    .select("id, name, prep_minutes, cook_minutes")
+    .select("id, name, description, source_url, image_url, prep_minutes, cook_minutes, servings, ingredients, instructions, tags, dietary_tags, is_favorite")
     .single();
 
   if (recipeError || !recipe) {
@@ -124,5 +133,5 @@ export async function quickAddRecipeAndPlan(formData: FormData): Promise<QuickAd
   if (itemError) return { ok: false, error: itemError.message };
 
   revalidatePath("/");
-  return { ok: true, recipe };
+  return { ok: true, recipe: recipe as QuickAddedRecipe };
 }
