@@ -76,8 +76,8 @@ export default async function HouseholdPage({ searchParams }: Props) {
       <header className="topbar household-page-topbar">
         <div className="brand-block">
           <a className="profile-back" href="/">← Back to kitchen</a>
-          <p className="eyebrow">HOUSEHOLD SETTINGS</p>
-          <h1>{household.name}</h1>
+          <p className="eyebrow">ACCOUNT &amp; SHARING</p>
+          <h1>Household</h1>
         </div>
         <AccountMenu displayName={displayName} />
       </header>
