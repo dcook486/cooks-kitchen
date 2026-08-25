@@ -4,13 +4,69 @@
 
 .landing-brand {
   padding: 6px 0;
+  transform: translateY(7px);
 }
 
-.landing-brand-badge {
+.landing-brand-lockup {
+  gap: 12px;
+}
+
+.landing-brand-emblem {
   display: block;
-  width: clamp(250px, 23vw, 320px);
-  height: auto;
+  width: 94px;
+  height: 94px;
+  flex: 0 0 94px;
   object-fit: contain;
+}
+
+.landing-brand-type {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 226px;
+}
+
+.landing-brand-cooks {
+  color: #2D4050;
+  font-family: var(--font-brand-serif), "Libre Baskerville", Georgia, serif;
+  font-size: 3.55rem;
+  font-weight: 700;
+  line-height: .92;
+  letter-spacing: -.065em;
+  white-space: nowrap;
+}
+
+.landing-brand-kitchen-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.landing-brand-kitchen {
+  color: #738372;
+  font-family: var(--font-brand-sans), Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: .82rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .38em;
+  padding-left: .38em;
+  white-space: nowrap;
+}
+
+.landing-brand-heart {
+  color: #E97B56;
+  font-size: .69rem;
+  line-height: 1;
+}
+
+.landing-brand-rule {
+  width: 30px;
+  height: 2px;
+  border-radius: 999px;
+  background: #E97B56;
 }
 
 .landing-hero-copy h1,
@@ -92,8 +148,45 @@
 }
 
 @media (max-width: 720px) {
-  .landing-brand-badge {
-    width: 205px;
+  .landing-brand {
+    transform: translateY(4px);
+  }
+
+  .landing-brand-lockup {
+    gap: 8px;
+  }
+
+  .landing-brand-emblem {
+    width: 70px;
+    height: 70px;
+    flex-basis: 70px;
+  }
+
+  .landing-brand-type {
+    min-width: 168px;
+  }
+
+  .landing-brand-cooks {
+    font-size: 2.55rem;
+  }
+
+  .landing-brand-kitchen-line {
+    gap: 5px;
+    margin-top: 4px;
+  }
+
+  .landing-brand-kitchen {
+    font-size: .61rem;
+    letter-spacing: .32em;
+    padding-left: .32em;
+  }
+
+  .landing-brand-heart {
+    font-size: .55rem;
+  }
+
+  .landing-brand-rule {
+    width: 20px;
   }
 
   .landing-cta-badge {
