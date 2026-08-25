@@ -1,7 +1,8 @@
-/* Preserve user avatar image framing after app-wide branding overrides. */
+/* Preserve the full user avatar instead of aggressively center-cropping it. */
 .account-avatar.has-image,
 .profile-avatar-large.has-image {
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
+  background-color: #ffffff;
 }
