@@ -40,6 +40,11 @@ function webUrlOrNull(value: FormDataEntryValue | null) {
   }
 }
 
+function localPathOrNull(value: FormDataEntryValue | null) {
+  const path = clean(value);
+  return path.startsWith("/") && !path.startsWith("//") ? path : null;
+}
+
 export async function saveImportedRecipe(formData: FormData) {
   const supabase = await createClient();
   const { data: claims, error: claimsError } = await supabase.auth.getClaims();
@@ -48,7 +53,11 @@ export async function saveImportedRecipe(formData: FormData) {
 
   const householdId = clean(formData.get("household_id"));
   const name = clean(formData.get("name"));
-  if (!householdId || !name) redirect("/recipes/import?error=Recipe%20name%20is%20required.");
+  const next = localPathOrNull(formData.get("next"));
+  if (!householdId || !name) {
+    const suffix = next ? `&next=${encodeURIComponent(next)}` : "";
+    redirect(`/recipes/import?error=Recipe%20name%20is%20required.${suffix}`);
+  }
 
   const { data: membership } = await supabase
     .from("household_members")
@@ -86,5 +95,7 @@ export async function saveImportedRecipe(formData: FormData) {
   if (error || !recipe) throw new Error(error?.message ?? "Could not save imported recipe.");
 
   revalidatePath("/");
+  revalidatePath("/onboarding");
+  if (next) redirect(next);
   redirect(`/recipes/${recipe.id}?imported=1`);
 }
