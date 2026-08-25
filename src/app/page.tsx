@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 type HomeProps = {
   searchParams: Promise<{
     week?: string | string[];
+    planner?: string;
+    month?: string;
     section?: string;
     invite?: string;
     joined?: string;
@@ -20,12 +22,28 @@ function localIsoDate(timeZone: string) {
   return `${year}-${month}-${day}`;
 }
 
+function dateFromIso(value: string) {
+  return new Date(`${value}T12:00:00Z`);
+}
+
+function addDays(value: string, amount: number) {
+  const date = dateFromIso(value);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
 function mondayFor(value: string) {
-  const date = new Date(`${value}T12:00:00Z`);
+  const date = dateFromIso(value);
   if (Number.isNaN(date.getTime())) return null;
   const weekday = date.getUTCDay();
   date.setUTCDate(date.getUTCDate() + (weekday === 0 ? -6 : 1 - weekday));
   return date.toISOString().slice(0, 10);
+}
+
+function firstOfMonth(value: string) {
+  const date = dateFromIso(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
 export default async function Home({ searchParams }: HomeProps) {
@@ -67,14 +85,44 @@ export default async function Home({ searchParams }: HomeProps) {
   ]);
   if (!household) redirect("/onboarding");
 
-  const currentWeekStart = mondayFor(localIsoDate(household.timezone))!;
+  const today = localIsoDate(household.timezone);
+  const currentWeekStart = mondayFor(today)!;
+  const plannerMode = params.planner === "month" ? "month" : "week";
   const requestedWeek = Array.isArray(params.week) ? params.week[0] : params.week;
-  const selectedWeekStart = requestedWeek && /^\d{4}-\d{2}-\d{2}$/.test(requestedWeek) ? mondayFor(requestedWeek) ?? currentWeekStart : currentWeekStart;
+  const requestedMonth = typeof params.month === "string" && /^\d{4}-\d{2}$/.test(params.month) ? `${params.month}-01` : null;
 
-  const { data: mealPlan } = await supabase.from("meal_plans").select("id").eq("household_id", membership.household_id).eq("week_start", selectedWeekStart).maybeSingle();
+  let selectedWeekStart = requestedWeek && /^\d{4}-\d{2}-\d{2}$/.test(requestedWeek)
+    ? mondayFor(requestedWeek) ?? currentWeekStart
+    : currentWeekStart;
+
+  let monthAnchor = requestedMonth ?? firstOfMonth(addDays(selectedWeekStart, 3)) ?? firstOfMonth(today)!;
+  if (plannerMode === "month" && requestedMonth && !requestedWeek) {
+    selectedWeekStart = mondayFor(monthAnchor) ?? currentWeekStart;
+  }
+
+  monthAnchor = firstOfMonth(monthAnchor) ?? firstOfMonth(today)!;
+  const monthGridStart = mondayFor(monthAnchor)!;
+  const monthGridEnd = addDays(monthGridStart, 41);
+  const lastPlanWeek = mondayFor(monthGridEnd)!;
+
+  const { data: monthPlans } = await supabase
+    .from("meal_plans")
+    .select("id, week_start")
+    .eq("household_id", membership.household_id)
+    .gte("week_start", monthGridStart)
+    .lte("week_start", lastPlanWeek)
+    .order("week_start", { ascending: true });
+
   let mealPlanItems: Array<{ id: string; meal_date: string; meal_type: string; recipe_id: string | null; custom_label: string | null; status: string; notes: string | null }> = [];
-  if (mealPlan) {
-    const { data: items } = await supabase.from("meal_plan_items").select("id, meal_date, meal_type, recipe_id, custom_label, status, notes").eq("meal_plan_id", mealPlan.id).order("meal_date", { ascending: true });
+  const planIds = (monthPlans ?? []).map((plan) => plan.id);
+  if (planIds.length) {
+    const { data: items } = await supabase
+      .from("meal_plan_items")
+      .select("id, meal_date, meal_type, recipe_id, custom_label, status, notes")
+      .in("meal_plan_id", planIds)
+      .gte("meal_date", monthGridStart)
+      .lte("meal_date", monthGridEnd)
+      .order("meal_date", { ascending: true });
     mealPlanItems = items ?? [];
   }
 
@@ -88,6 +136,8 @@ export default async function Home({ searchParams }: HomeProps) {
       mealPlanItems={mealPlanItems}
       weekStart={selectedWeekStart}
       currentWeekStart={currentWeekStart}
+      monthAnchor={monthAnchor}
+      initialPlannerMode={plannerMode}
       initialView={initialView}
     />
   );
