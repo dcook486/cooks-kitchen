@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { KitchenDashboard } from "@/components/kitchen-dashboard";
+import { LandingPage } from "@/components/landing-page";
 import { createClient } from "@/lib/supabase/server";
 
 type HomeProps = {
@@ -48,9 +49,10 @@ function firstOfMonth(value: string) {
 
 export default async function Home({ searchParams }: HomeProps) {
   const supabase = await createClient();
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const { data: claimsData } = await supabase.auth.getClaims();
   const userId = claimsData?.claims?.sub;
-  if (claimsError || !userId) redirect("/login");
+
+  if (!userId) return <LandingPage />;
 
   const params = await searchParams;
   if (params.section === "household") {
