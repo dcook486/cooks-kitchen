@@ -59,6 +59,22 @@ function householdInitials(name: string) {
     .join("") || "CK";
 }
 
+function emailInviteHref(email: string, householdName: string, link: string) {
+  const subject = `Join ${householdName} on Cook's Kitchen`;
+  const body = [
+    `You've been invited to join ${householdName} on Cook's Kitchen.`,
+    "",
+    "Open this private invitation:",
+    link,
+    "",
+    `The easiest way to join is to choose “Continue with Google” and use ${email}. No new password is needed.`,
+    "",
+    "This invitation expires after 7 days.",
+  ].join("\n");
+
+  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 export function HouseholdSharing({
   householdId,
   householdName,
@@ -70,6 +86,9 @@ export function HouseholdSharing({
   shareError,
 }: Props) {
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const generatedInvite = generatedInviteToken
+    ? invitations.find((invite) => invite.token === generatedInviteToken) ?? null
+    : null;
   const generatedLink = generatedInviteToken ? `${siteUrl}/invite/${generatedInviteToken}` : null;
   const isOwner = role === "owner";
 
@@ -77,6 +96,23 @@ export function HouseholdSharing({
     await navigator.clipboard.writeText(link);
     setCopiedLink(link);
     window.setTimeout(() => setCopiedLink(null), 1800);
+  }
+
+  async function shareInvite(invite: Invitation) {
+    const link = `${siteUrl}/invite/${invite.token}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join ${householdName} on Cook's Kitchen`,
+          text: `Use this private link to join ${householdName}. Sign in with Google using ${invite.invited_email}.`,
+          url: link,
+        });
+        return;
+      } catch {
+        // The user can cancel the native share sheet; fall back to copying only when needed.
+      }
+    }
+    await copyLink(link);
   }
 
   return (
@@ -99,18 +135,34 @@ export function HouseholdSharing({
       {joined && <div className="form-alert success">You joined {householdName}. Your recipes and weekly plan are now shared.</div>}
       {shareError && <div className="form-alert error">{shareError}</div>}
 
-      {generatedLink && (
-        <div className="invite-success-card">
+      {generatedLink && generatedInvite && (
+        <div className="invite-success-card invite-success-card-enhanced">
           <div className="invite-success-icon" aria-hidden="true">✓</div>
           <div className="invite-success-copy">
-            <p className="eyebrow">INVITE READY</p>
-            <h3>Share this private link</h3>
-            <p>Send it only to the person you invited. The link expires after seven days and their account email must match the invitation.</p>
+            <p className="eyebrow">INVITATION READY</p>
+            <h3>Send it to {generatedInvite.invited_email}</h3>
+            <p>They can open the link and join with Google using that email address—no Cook&apos;s Kitchen password to create or remember.</p>
           </div>
+
+          <div className="invite-steps" aria-label="Invitation steps">
+            <div><span>1</span><strong>Send the private link</strong></div>
+            <div><span>2</span><strong>They choose Continue with Google</strong></div>
+            <div><span>3</span><strong>They confirm joining your household</strong></div>
+          </div>
+
           <div className="invite-link-row">
             <input readOnly value={generatedLink} aria-label="Household invitation link" />
-            <button className="primary" type="button" onClick={() => copyLink(generatedLink)}>
+            <button className="secondary" type="button" onClick={() => copyLink(generatedLink)}>
               {copiedLink === generatedLink ? "Copied" : "Copy link"}
+            </button>
+          </div>
+
+          <div className="invite-actions-row">
+            <a className="primary link-button" href={emailInviteHref(generatedInvite.invited_email, householdName, generatedLink)}>
+              Email invitation
+            </a>
+            <button className="secondary" type="button" onClick={() => shareInvite(generatedInvite)}>
+              Share invitation
             </button>
           </div>
         </div>
@@ -181,7 +233,15 @@ export function HouseholdSharing({
                   <h3>Add a household member</h3>
                 </div>
               </div>
-              <p className="panel-copy">Invite a family member by email, then send them the secure link. Once they join, they&apos;ll see the same recipes and weekly plan you do.</p>
+              <p className="panel-copy">Enter the Google or email address they&apos;ll use to sign in. We&apos;ll create a private link you can text, email, or share.</p>
+
+              <div className="google-invite-note">
+                <span className="google-invite-mark" aria-hidden="true">G</span>
+                <div>
+                  <strong>Google makes joining easier</strong>
+                  <span>If they use Google with the invited address, they can join without creating a Cook&apos;s Kitchen password.</span>
+                </div>
+              </div>
 
               <form className="invite-form" action={createHouseholdInvitation}>
                 <input type="hidden" name="household_id" value={householdId} />
@@ -189,9 +249,9 @@ export function HouseholdSharing({
                   Email address
                   <input name="email" type="email" placeholder="family@example.com" autoComplete="email" required />
                 </label>
-                <button className="primary" type="submit">Create invite</button>
+                <button className="primary" type="submit">Create invitation</button>
               </form>
-              <p className="invite-fine-print">Private invite links expire after 7 days.</p>
+              <p className="invite-fine-print">For security, the account they use must match this email. Invitations expire after 7 days.</p>
 
               {invitations.length > 0 && (
                 <div className="pending-invites">
@@ -207,9 +267,13 @@ export function HouseholdSharing({
                           <strong>{invite.invited_email}</strong>
                           <span>Expires {formatShortDate(invite.expires_at)}</span>
                         </div>
-                        <div className="inline-actions">
+                        <div className="inline-actions pending-invite-actions">
+                          <a className="secondary compact link-button" href={emailInviteHref(invite.invited_email, householdName, link)}>Email</a>
+                          <button className="secondary compact" type="button" onClick={() => shareInvite(invite)}>
+                            Share
+                          </button>
                           <button className="secondary compact" type="button" onClick={() => copyLink(link)}>
-                            {copiedLink === link ? "Copied" : "Copy link"}
+                            {copiedLink === link ? "Copied" : "Copy"}
                           </button>
                           <form action={revokeHouseholdInvitation}>
                             <input type="hidden" name="id" value={invite.id} />
