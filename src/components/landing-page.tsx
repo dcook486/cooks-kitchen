@@ -5,8 +5,8 @@ export function LandingPage() {
         <a className="landing-brand" href="/" aria-label="Cook's Kitchen home">
           <img
             className="landing-brand-badge"
-            src="/cooks-kitchen-badge.svg"
-            alt="Cook's Kitchen — Plan together. Eat together."
+            src="/cooks-kitchen-horizontal.webp"
+            alt="Cook's Kitchen"
           />
         </a>
         <div className="landing-nav-actions">
