@@ -21,7 +21,11 @@ export default async function LoginPage({ searchParams }: Props) {
   queryBits.set("next", next);
   if (inviteToken) queryBits.set("invite", inviteToken);
   if (!signupMode) queryBits.set("mode", "signup");
-  const switchHref = signupMode ? `/login?${new URLSearchParams({ next, ...(inviteToken ? { invite: inviteToken } : {}) }).toString()}` : `/login?${queryBits.toString()}`;
+  const switchHref = signupMode
+    ? `/login?${new URLSearchParams({ next, ...(inviteToken ? { invite: inviteToken } : {}) }).toString()}`
+    : `/login?${queryBits.toString()}`;
+
+  const inviteHeading = signupMode ? "Create an account to join" : "Join your household";
 
   return (
     <main className="auth-page">
@@ -38,12 +42,14 @@ export default async function LoginPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="auth-card">
+      <section className={`auth-card ${inviteToken ? "invite-auth-card" : ""}`}>
         <p className="eyebrow">{inviteToken ? "HOUSEHOLD INVITATION" : signupMode ? "CREATE YOUR KITCHEN" : "WELCOME BACK"}</p>
-        <h2>{signupMode ? (inviteToken ? "Create your account to join" : "Start cooking together") : "Sign in"}</h2>
+        <h2>{inviteToken ? inviteHeading : signupMode ? "Start cooking together" : "Sign in"}</h2>
         <p className="auth-subcopy">
           {inviteToken
-            ? "Use the email address that received the invitation. Your account will join the shared household after you sign in."
+            ? signupMode
+              ? "Create an account with the email address that received the invitation."
+              : "The fastest way in is Google. Choose the Google account that matches the email address your invitation was sent to."
             : signupMode
               ? "Create your account first. We’ll set up your shared household next."
               : "Pick up where you left off."}
@@ -52,24 +58,19 @@ export default async function LoginPage({ searchParams }: Props) {
         {params.error && <div className="form-alert error">{params.error}</div>}
         {params.message && <div className="form-alert success">{params.message}</div>}
 
-        <GoogleSignInButton next={next} />
+        <GoogleSignInButton next={next} label={inviteToken ? "Continue with Google to join" : "Continue with Google"} />
 
-        <div
-          aria-hidden="true"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            margin: "17px 0",
-            color: "var(--muted)",
-            fontSize: ".7rem",
-            fontWeight: 800,
-            letterSpacing: ".08em",
-          }}
-        >
-          <span style={{ height: 1, background: "var(--line)", flex: 1 }} />
-          <span>OR</span>
-          <span style={{ height: 1, background: "var(--line)", flex: 1 }} />
+        {inviteToken && (
+          <div className="invite-google-helper">
+            <span aria-hidden="true">✓</span>
+            <p><strong>No new password needed.</strong> Google will bring you back here to confirm joining the household.</p>
+          </div>
+        )}
+
+        <div className="auth-divider" aria-hidden="true">
+          <span />
+          <strong>{inviteToken ? "OR USE EMAIL" : "OR"}</strong>
+          <span />
         </div>
 
         <form className="stack-form">
@@ -90,12 +91,14 @@ export default async function LoginPage({ searchParams }: Props) {
             <input name="password" type="password" autoComplete={signupMode ? "new-password" : "current-password"} minLength={8} required />
           </label>
           <button className="primary wide" formAction={signupMode ? signup : login}>
-            {signupMode ? "Create account" : "Sign in"}
+            {signupMode ? "Create account" : inviteToken ? "Sign in and continue" : "Sign in"}
           </button>
         </form>
 
         <a className="auth-switch" href={switchHref}>
-          {signupMode ? "Already have an account? Sign in" : "New here? Create an account"}
+          {signupMode
+            ? inviteToken ? "Already have an account? Sign in" : "Already have an account? Sign in"
+            : inviteToken ? "Don’t use Google? Create an email/password account" : "New here? Create an account"}
         </a>
       </section>
     </main>
