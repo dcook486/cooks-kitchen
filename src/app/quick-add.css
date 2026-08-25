@@ -1,0 +1,117 @@
+.meal-quick-add-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #ebe5dc;
+}
+
+.meal-quick-add-trigger {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed #bfd0c2;
+  border-radius: 13px;
+  background: #f8fbf7;
+  color: var(--accent);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.meal-quick-add-trigger:hover { background: #f2f7f1; border-color: #9db7a2; }
+
+.meal-quick-add-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #dce6dc;
+  border-radius: 15px;
+  background: #f8fbf7;
+}
+
+.meal-quick-add-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.meal-quick-add-heading strong { display: block; color: var(--text); font-size: .88rem; }
+.meal-quick-add-heading span { display: block; margin-top: 3px; color: var(--muted); font-size: .68rem; line-height: 1.35; }
+
+.meal-quick-add-form label {
+  display: grid;
+  gap: 5px;
+  color: #626b64;
+  font-size: .66rem;
+  font-weight: 800;
+}
+
+.meal-quick-add-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #d8ded7;
+  border-radius: 11px;
+  background: #fffefa;
+  color: var(--text);
+  font: inherit;
+  font-size: .8rem;
+}
+
+.meal-quick-add-form input:focus {
+  outline: 2px solid rgba(64, 116, 84, .18);
+  border-color: #9fb6a4;
+}
+
+.meal-quick-add-error {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: #fff3ef;
+  color: #8a4638;
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.meal-quick-add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meal-quick-add-cancel,
+.meal-quick-add-submit {
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.meal-quick-add-cancel {
+  border: 1px solid #d7ddd6;
+  background: #fffefa;
+  color: var(--muted);
+}
+
+.meal-quick-add-submit {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.meal-quick-add-submit:disabled,
+.meal-quick-add-cancel:disabled { opacity: .55; cursor: wait; }
+
+@media (max-width: 660px) {
+  .meal-quick-add-form { padding: 14px; }
+  .meal-quick-add-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .meal-quick-add-cancel, .meal-quick-add-submit { min-height: 44px; }
+}
