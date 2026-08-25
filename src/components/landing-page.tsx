@@ -2,13 +2,6 @@ export function LandingPage() {
   return (
     <main className="landing-shell">
       <header className="landing-nav">
-        <a className="landing-brand" href="/" aria-label="Cook's Kitchen home">
-          <img
-            className="landing-brand-badge"
-            src="/cooks-kitchen-circle-v2.webp"
-            alt="Cook's Kitchen"
-          />
-        </a>
         <div className="landing-nav-actions">
           <a className="landing-text-link" href="/login?next=/">Sign in</a>
           <a className="landing-button small" href="/login?mode=signup&next=/">Create your kitchen</a>
