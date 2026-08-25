@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { saveDinnerPlan } from "@/app/actions";
 
+type PlannerMode = "week" | "month";
+
 type Recipe = {
   id: string;
   name: string;
@@ -28,6 +30,8 @@ type Props = {
   mealPlanItems: MealPlanItem[];
   weekStart: string;
   currentWeekStart: string;
+  monthAnchor: string;
+  initialMode: PlannerMode;
 };
 
 type PickerDay = {
@@ -36,6 +40,7 @@ type PickerDay = {
 } | null;
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const dayShortNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const quickChoices = [
   { value: "leftovers", icon: "↻", title: "Leftovers", description: "Use what’s already in the fridge" },
@@ -50,6 +55,24 @@ function dateFromIso(value: string) {
 function addDays(value: string, amount: number) {
   const date = dateFromIso(value);
   date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+function mondayFor(value: string) {
+  const date = dateFromIso(value);
+  const weekday = date.getUTCDay();
+  date.setUTCDate(date.getUTCDate() + (weekday === 0 ? -6 : 1 - weekday));
+  return date.toISOString().slice(0, 10);
+}
+
+function firstOfMonth(value: string) {
+  const date = dateFromIso(value);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function addMonths(value: string, amount: number) {
+  const date = dateFromIso(firstOfMonth(value));
+  date.setUTCMonth(date.getUTCMonth() + amount);
   return date.toISOString().slice(0, 10);
 }
 
@@ -72,6 +95,14 @@ function formatShortDate(value: string) {
     day: "numeric",
     timeZone: "UTC",
   }).format(dateFromIso(value));
+}
+
+function formatWeekday(value: string) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(dateFromIso(value));
+}
+
+function formatMonthLabel(value: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(dateFromIso(value));
 }
 
 function formatWeekLabel(weekStart: string) {
@@ -97,11 +128,11 @@ function selectionFor(item: MealPlanItem | undefined) {
 
 function summaryForSelection(selection: string, recipes: Recipe[]) {
   if (selection === "none") {
-    return { title: "Not planned yet", meta: "Choose a dinner", emoji: "○", recipeId: null as string | null };
+    return { title: "Not planned yet", meta: "Choose a dinner", emoji: "○", recipeId: null as string | null, kind: "empty" };
   }
-  if (selection === "leftovers") return { title: "Leftovers", meta: "Use what’s already in the fridge", emoji: "↻", recipeId: null };
-  if (selection === "eating_out") return { title: "Eating out", meta: "No cooking tonight", emoji: "🍽️", recipeId: null };
-  if (selection === "skipped") return { title: "No dinner planned", meta: "Intentionally left open", emoji: "—", recipeId: null };
+  if (selection === "leftovers") return { title: "Leftovers", meta: "Use what’s already in the fridge", emoji: "↻", recipeId: null, kind: "leftovers" };
+  if (selection === "eating_out") return { title: "Eating out", meta: "No cooking tonight", emoji: "🍽️", recipeId: null, kind: "eating-out" };
+  if (selection === "skipped") return { title: "No dinner planned", meta: "Intentionally left open", emoji: "—", recipeId: null, kind: "skipped" };
 
   if (selection.startsWith("recipe:")) {
     const recipeId = selection.slice("recipe:".length);
@@ -113,11 +144,12 @@ function summaryForSelection(selection: string, recipes: Recipe[]) {
         meta: minutes ? `${minutes} min total` : "From your recipe bank",
         emoji: "✓",
         recipeId: recipe.id,
+        kind: "recipe",
       };
     }
   }
 
-  return { title: "Planned dinner", meta: "Saved to this week", emoji: "✓", recipeId: null };
+  return { title: "Planned dinner", meta: "Saved to this week", emoji: "✓", recipeId: null, kind: "recipe" };
 }
 
 function recipeMeta(recipe: Recipe) {
@@ -125,11 +157,19 @@ function recipeMeta(recipe: Recipe) {
   return minutes ? `${minutes} min total` : "From your recipe bank";
 }
 
-export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, weekStart, currentWeekStart }: Props) {
+export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, weekStart, currentWeekStart, monthAnchor, initialMode }: Props) {
   const previousWeek = addDays(weekStart, -7);
   const nextWeek = addDays(weekStart, 7);
   const isCurrentWeek = weekStart === currentWeekStart;
   const today = localIsoDate(timeZone);
+  const currentMonth = firstOfMonth(today);
+  const normalizedMonth = firstOfMonth(monthAnchor);
+  const previousMonth = addMonths(normalizedMonth, -1);
+  const nextMonth = addMonths(normalizedMonth, 1);
+  const monthGridStart = mondayFor(normalizedMonth);
+  const monthDates = Array.from({ length: 42 }, (_, index) => addDays(monthGridStart, index));
+
+  const [mode, setMode] = useState<PlannerMode>(initialMode);
   const [pickerDay, setPickerDay] = useState<PickerDay>(null);
   const [query, setQuery] = useState("");
   const [optimisticSelections, setOptimisticSelections] = useState<Record<string, string>>({});
@@ -165,6 +205,19 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     };
   }, [pickerDay]);
 
+  function switchMode(nextMode: PlannerMode) {
+    setMode(nextMode);
+    const url = new URL(window.location.href);
+    if (nextMode === "month") {
+      url.searchParams.set("planner", "month");
+      url.searchParams.set("month", normalizedMonth.slice(0, 7));
+    } else {
+      url.searchParams.delete("planner");
+      url.searchParams.delete("month");
+    }
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }
+
   function openPicker(day: string, mealDate: string) {
     setQuery("");
     setPickerDay({ day, mealDate });
@@ -181,7 +234,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
 
     const formData = new FormData();
     formData.set("household_id", householdId);
-    formData.set("week_start", weekStart);
+    formData.set("week_start", mondayFor(mealDate));
     formData.set("meal_date", mealDate);
     formData.set("selection", selection);
 
@@ -196,67 +249,129 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     });
   }
 
+  const headingTitle = mode === "week"
+    ? (isCurrentWeek ? "This week" : `Week of ${formatShortDate(weekStart)}`)
+    : formatMonthLabel(normalizedMonth);
+
   return (
     <section>
-      <div className="section-heading week-heading">
+      <div className="section-heading week-heading planner-heading">
         <div>
           <p className="eyebrow">DINNER AT A GLANCE</p>
-          <h2>{isCurrentWeek ? "This week" : `Week of ${formatShortDate(weekStart)}`}</h2>
-          <p className="week-range">{formatWeekLabel(weekStart)}</p>
+          <h2>{headingTitle}</h2>
+          <p className="week-range">{mode === "week" ? formatWeekLabel(weekStart) : "See the whole month, then tap any day to plan dinner."}</p>
         </div>
-        <div className="inline-actions week-actions" aria-label="Week navigation">
-          <Link className="secondary link-button" href={`/?week=${previousWeek}`}>← Previous</Link>
-          {!isCurrentWeek && <Link className="secondary link-button" href="/">This week</Link>}
-          <Link className="secondary link-button" href={`/?week=${nextWeek}`}>Next →</Link>
+
+        <div className="planner-heading-controls">
+          <div className="planner-view-toggle" role="group" aria-label="Planner view">
+            <button type="button" className={mode === "week" ? "active" : ""} onClick={() => switchMode("week")} aria-pressed={mode === "week"}>Week</button>
+            <button type="button" className={mode === "month" ? "active" : ""} onClick={() => switchMode("month")} aria-pressed={mode === "month"}>Month</button>
+          </div>
+
+          {mode === "week" ? (
+            <div className="inline-actions week-actions" aria-label="Week navigation">
+              <Link className="secondary link-button" href={`/?week=${previousWeek}`}>← Previous</Link>
+              {!isCurrentWeek && <Link className="secondary link-button" href="/">This week</Link>}
+              <Link className="secondary link-button" href={`/?week=${nextWeek}`}>Next →</Link>
+            </div>
+          ) : (
+            <div className="inline-actions week-actions" aria-label="Month navigation">
+              <Link className="secondary link-button" href={`/?planner=month&month=${previousMonth.slice(0, 7)}`}>← Previous</Link>
+              {normalizedMonth !== currentMonth && <Link className="secondary link-button" href={`/?planner=month&month=${currentMonth.slice(0, 7)}`}>This month</Link>}
+              <Link className="secondary link-button" href={`/?planner=month&month=${nextMonth.slice(0, 7)}`}>Next →</Link>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="week-grid">
-        {dayNames.map((day, index) => {
-          const mealDate = addDays(weekStart, index);
-          const item = mealPlanItems.find((entry) => entry.meal_date === mealDate && entry.meal_type === "dinner");
-          const selection = optimisticSelections[mealDate] ?? selectionFor(item);
-          const summary = summaryForSelection(selection, recipes);
-          const isToday = mealDate === today;
-          const hasPlan = selection !== "none";
-          const saving = savingDate === mealDate && isPending;
+      {mode === "week" ? (
+        <div className="week-grid">
+          {dayNames.map((day, index) => {
+            const mealDate = addDays(weekStart, index);
+            const item = mealPlanItems.find((entry) => entry.meal_date === mealDate && entry.meal_type === "dinner");
+            const selection = optimisticSelections[mealDate] ?? selectionFor(item);
+            const summary = summaryForSelection(selection, recipes);
+            const isToday = mealDate === today;
+            const hasPlan = selection !== "none";
+            const saving = savingDate === mealDate && isPending;
 
-          return (
-            <article className={`day-card ${hasPlan ? "planned-day" : ""} ${isToday ? "today-card" : ""}`} key={mealDate}>
-              <div className="day-card-heading">
-                <div>
-                  <div className="day-name">{day}</div>
-                  <div className="day-date">{formatShortDate(mealDate)}</div>
+            return (
+              <article className={`day-card ${hasPlan ? "planned-day" : ""} ${isToday ? "today-card" : ""}`} key={mealDate}>
+                <div className="day-card-heading">
+                  <div>
+                    <div className="day-name">{day}</div>
+                    <div className="day-date">{formatShortDate(mealDate)}</div>
+                  </div>
+                  {isToday && <span className="today-pill">Today</span>}
                 </div>
-                {isToday && <span className="today-pill">Today</span>}
-              </div>
 
-              <div className="meal-slot">
-                <div className="meal-emoji">{summary.emoji}</div>
-                <div className={`meal-name ${hasPlan ? "" : "muted-meal"}`}>
-                  {summary.recipeId ? <Link className="meal-name-link" href={`/recipes/${summary.recipeId}`}>{summary.title}</Link> : summary.title}
+                <div className="meal-slot">
+                  <div className="meal-emoji">{summary.emoji}</div>
+                  <div className={`meal-name ${hasPlan ? "" : "muted-meal"}`}>
+                    {summary.recipeId ? <Link className="meal-name-link" href={`/recipes/${summary.recipeId}`}>{summary.title}</Link> : summary.title}
+                  </div>
+                  <div className="meal-meta">{summary.meta}</div>
                 </div>
-                <div className="meal-meta">{summary.meta}</div>
-              </div>
 
-              <div className="meal-picker-modern">
+                <div className="meal-picker-modern">
+                  <button
+                    className={`meal-picker-button ${hasPlan ? "has-selection" : ""}`}
+                    type="button"
+                    onClick={() => openPicker(day, mealDate)}
+                    aria-haspopup="dialog"
+                  >
+                    <span className="meal-picker-button-copy"><strong>{hasPlan ? "Change dinner" : "Choose dinner"}</strong></span>
+                  </button>
+                  {saving && <span className="auto-save-status saving">Saving…</span>}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="month-calendar-shell">
+          <div className="month-weekdays" aria-hidden="true">
+            {dayShortNames.map((day) => <span key={day}>{day}</span>)}
+          </div>
+          <div className="month-calendar-grid">
+            {monthDates.map((mealDate) => {
+              const item = mealPlanItems.find((entry) => entry.meal_date === mealDate && entry.meal_type === "dinner");
+              const selection = optimisticSelections[mealDate] ?? selectionFor(item);
+              const summary = summaryForSelection(selection, recipes);
+              const hasPlan = selection !== "none";
+              const inMonth = mealDate.slice(0, 7) === normalizedMonth.slice(0, 7);
+              const isToday = mealDate === today;
+              const saving = savingDate === mealDate && isPending;
+              const date = dateFromIso(mealDate);
+
+              return (
                 <button
-                  className={`meal-picker-button ${hasPlan ? "has-selection" : ""}`}
                   type="button"
-                  onClick={() => openPicker(day, mealDate)}
-                  aria-haspopup="dialog"
+                  key={mealDate}
+                  className={`month-day ${inMonth ? "" : "outside-month"} ${hasPlan ? "has-plan" : ""} ${isToday ? "today" : ""}`}
+                  onClick={() => openPicker(formatWeekday(mealDate), mealDate)}
+                  aria-label={`${formatWeekday(mealDate)}, ${formatShortDate(mealDate)}. ${hasPlan ? summary.title : "No dinner planned"}.`}
                 >
-                  <span className="meal-picker-button-copy">
-                    <strong>{hasPlan ? "Change dinner" : "Choose dinner"}</strong>
+                  <span className="month-day-top">
+                    <span className="month-day-number">{date.getUTCDate()}</span>
+                    {isToday && <span className="month-today-dot" aria-label="Today">Today</span>}
                   </span>
-                  <span className="meal-picker-button-action" aria-hidden="true">{hasPlan ? "→" : "+"}</span>
+                  {hasPlan ? (
+                    <span className={`month-meal-pill ${summary.kind}`}>
+                      <span className="month-meal-icon" aria-hidden="true">{summary.emoji}</span>
+                      <span className="month-meal-title">{summary.title}</span>
+                    </span>
+                  ) : (
+                    <span className="month-empty-hint"><span aria-hidden="true">＋</span><span className="month-empty-copy">Add dinner</span></span>
+                  )}
+                  {saving && <span className="month-saving">Saving…</span>}
                 </button>
-                {saving && <span className="auto-save-status saving">Saving…</span>}
-              </div>
-            </article>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+          <p className="month-mobile-help">Tap a day to choose or change dinner.</p>
+        </div>
+      )}
 
       {!recipes.length && (
         <div className="coming-next">
