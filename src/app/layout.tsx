@@ -15,6 +15,7 @@ import "./household-identity.css";
 import "./landing.css";
 import "./landing-brand.css";
 import "./app-brand.css";
+import "./avatar-fix.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
