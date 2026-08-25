@@ -29,7 +29,7 @@ type Props = {
 };
 
 const views: Array<{ id: View; label: string; mobileLabel: string; icon: string }> = [
-  { id: "week", label: "This week", mobileLabel: "Week", icon: "▦" },
+  { id: "week", label: "The Plan", mobileLabel: "The Plan", icon: "▦" },
   { id: "recipes", label: "Recipes", mobileLabel: "Recipes", icon: "⌑" },
 ];
 
@@ -65,7 +65,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
 
   function tabLabel(tab: View) {
     if (tab === "recipes") return `Recipes · ${recipes.length}`;
-    return "This week";
+    return "The Plan";
   }
 
   return (
