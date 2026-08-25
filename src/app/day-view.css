@@ -1,0 +1,365 @@
+.planner-view-toggle {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.day-detail-view {
+  display: grid;
+  gap: 16px;
+}
+
+.day-recipe-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 390px);
+  gap: clamp(24px, 4vw, 52px);
+  align-items: stretch;
+  padding: clamp(24px, 4vw, 42px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: 0 18px 48px rgba(45, 64, 80, .07);
+  overflow: hidden;
+}
+
+.day-recipe-hero-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.day-detail-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.day-detail-kicker-row .eyebrow {
+  margin: 0;
+}
+
+.day-favorite-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #fae9e2;
+  color: #a3573d;
+  font-size: .67rem;
+  font-weight: 850;
+}
+
+.day-recipe-hero h3 {
+  margin-top: 10px;
+  font-size: clamp(2.25rem, 5vw, 4.4rem);
+  line-height: 1.02;
+  letter-spacing: -.045em;
+}
+
+.day-recipe-description {
+  max-width: 720px;
+  margin: 17px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.day-detail-tags {
+  margin-top: 19px;
+}
+
+.day-detail-actions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+.day-saving {
+  margin-top: 9px;
+  text-align: left;
+}
+
+.day-recipe-photo {
+  min-height: 300px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--accent-2);
+}
+
+.day-recipe-photo img {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  display: block;
+  object-fit: cover;
+}
+
+.day-recipe-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .78);
+}
+
+.day-recipe-stats > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 18px 20px;
+  border-left: 1px solid var(--line);
+}
+
+.day-recipe-stats > div:first-child {
+  border-left: 0;
+}
+
+.day-recipe-stats span,
+.day-plan-note > span {
+  color: var(--accent);
+  font-size: .65rem;
+  font-weight: 850;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.day-recipe-stats strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.day-plan-note {
+  padding: 17px 19px;
+  border: 1px solid rgba(233, 123, 86, .24);
+  border-radius: 17px;
+  background: #fff8f5;
+}
+
+.day-plan-note p {
+  margin: 5px 0 0;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.day-plan-note.compact {
+  width: min(520px, 100%);
+  margin: 18px auto 0;
+  text-align: left;
+}
+
+.day-cook-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, .82fr) minmax(0, 1.18fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.day-cook-card {
+  min-width: 0;
+  padding: clamp(22px, 3vw, 30px);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 10px 28px rgba(45, 64, 80, .04);
+}
+
+.day-cook-card-heading {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.day-cook-card-heading .eyebrow {
+  margin-bottom: 6px;
+}
+
+.day-cook-card-heading h3 {
+  font-size: 1.65rem;
+}
+
+.day-ingredient-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day-ingredient-list li {
+  position: relative;
+  padding: 11px 0 11px 23px;
+  border-top: 1px solid #efebe8;
+  color: #43535d;
+  line-height: 1.45;
+}
+
+.day-ingredient-list li:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.day-ingredient-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 18px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.day-ingredient-list li:first-child::before {
+  top: 9px;
+}
+
+.day-instruction-list {
+  display: grid;
+  gap: 15px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day-instruction-list li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+}
+
+.day-instruction-list li > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-2);
+  color: var(--accent);
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.day-instruction-list p {
+  margin: 4px 0 0;
+  color: #43535d;
+  line-height: 1.6;
+}
+
+.day-empty-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.day-plan-empty {
+  min-height: 430px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  padding: 42px 24px;
+  border: 1.5px dashed #d7d1cd;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, .58);
+  text-align: center;
+}
+
+.day-plan-empty.has-quick-plan {
+  border-style: solid;
+  border-color: #c9d2c7;
+  background: linear-gradient(180deg, rgba(255,255,255,.84), #f5f7f4);
+}
+
+.day-plan-empty-icon {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border-radius: 20px;
+  background: var(--accent-2);
+  color: var(--accent);
+  font-size: 1.75rem;
+}
+
+.day-plan-empty h3 {
+  margin-top: 7px;
+  font-size: clamp(2rem, 5vw, 3.3rem);
+}
+
+.day-plan-empty > p:not(.eyebrow) {
+  margin: 9px 0 22px;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .day-recipe-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .day-recipe-photo {
+    order: -1;
+    min-height: 240px;
+  }
+
+  .day-recipe-photo img {
+    min-height: 240px;
+    max-height: 430px;
+  }
+
+  .day-cook-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 660px) {
+  .planner-view-toggle {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .day-recipe-hero {
+    padding: 19px;
+    border-radius: 21px;
+  }
+
+  .day-recipe-hero h3 {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
+  .day-recipe-photo,
+  .day-recipe-photo img {
+    min-height: 205px;
+  }
+
+  .day-detail-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .day-recipe-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .day-recipe-stats > div {
+    border-top: 1px solid var(--line);
+  }
+
+  .day-recipe-stats > div:nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  .day-recipe-stats > div:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .day-cook-card {
+    padding: 20px 18px;
+    border-radius: 19px;
+  }
+
+  .day-plan-empty {
+    min-height: 360px;
+    border-radius: 21px;
+  }
+}
