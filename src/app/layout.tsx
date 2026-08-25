@@ -23,7 +23,9 @@ export const metadata: Metadata = {
   title: "Cook's Kitchen",
   description: "A shared meal planner for households to save recipes and decide what's for dinner together.",
   icons: {
-    icon: "/cooks-kitchen-mark.svg",
+    icon: "/cooks-kitchen-circle.png",
+    shortcut: "/cooks-kitchen-circle.png",
+    apple: "/cooks-kitchen-circle.png",
   },
 };
 
