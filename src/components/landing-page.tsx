@@ -5,7 +5,7 @@ export function LandingPage() {
         <a className="landing-brand" href="/" aria-label="Cook's Kitchen home">
           <img
             className="landing-brand-badge"
-            src="/cooks-kitchen-horizontal-v2.webp"
+            src="/cooks-kitchen-circle-v2.webp"
             alt="Cook's Kitchen"
           />
         </a>
