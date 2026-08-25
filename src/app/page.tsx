@@ -7,6 +7,7 @@ type HomeProps = {
   searchParams: Promise<{
     week?: string | string[];
     planner?: string;
+    day?: string;
     month?: string;
     section?: string;
     invite?: string;
@@ -89,15 +90,23 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const today = localIsoDate(household.timezone);
   const currentWeekStart = mondayFor(today)!;
-  const plannerMode = params.planner === "month" ? "month" : "week";
+  const plannerMode = params.planner === "month" ? "month" : params.planner === "day" ? "day" : "week";
   const requestedWeek = Array.isArray(params.week) ? params.week[0] : params.week;
+  const requestedDay = typeof params.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : null;
   const requestedMonth = typeof params.month === "string" && /^\d{4}-\d{2}$/.test(params.month) ? `${params.month}-01` : null;
 
   let selectedWeekStart = requestedWeek && /^\d{4}-\d{2}-\d{2}$/.test(requestedWeek)
     ? mondayFor(requestedWeek) ?? currentWeekStart
     : currentWeekStart;
 
-  let monthAnchor = requestedMonth ?? firstOfMonth(addDays(selectedWeekStart, 3)) ?? firstOfMonth(today)!;
+  if (plannerMode === "day" && requestedDay && !requestedWeek) {
+    selectedWeekStart = mondayFor(requestedDay) ?? currentWeekStart;
+  }
+
+  let dayAnchor = requestedDay ?? (selectedWeekStart === currentWeekStart ? today : selectedWeekStart);
+  if (mondayFor(dayAnchor) !== selectedWeekStart) dayAnchor = selectedWeekStart;
+
+  let monthAnchor = requestedMonth ?? firstOfMonth(plannerMode === "day" ? dayAnchor : addDays(selectedWeekStart, 3)) ?? firstOfMonth(today)!;
   if (plannerMode === "month" && requestedMonth && !requestedWeek) {
     selectedWeekStart = mondayFor(monthAnchor) ?? currentWeekStart;
   }
@@ -138,6 +147,7 @@ export default async function Home({ searchParams }: HomeProps) {
       mealPlanItems={mealPlanItems}
       weekStart={selectedWeekStart}
       currentWeekStart={currentWeekStart}
+      dayAnchor={dayAnchor}
       monthAnchor={monthAnchor}
       initialPlannerMode={plannerMode}
       initialView={initialView}
