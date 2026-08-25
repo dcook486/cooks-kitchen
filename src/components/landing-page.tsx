@@ -3,8 +3,13 @@ export function LandingPage() {
     <main className="landing-shell">
       <header className="landing-nav">
         <a className="landing-brand" href="/" aria-label="Cook's Kitchen home">
-          <span className="landing-brand-mark">CK</span>
-          <span>Cook&apos;s Kitchen</span>
+          <span className="landing-brand-mark" aria-hidden="true">
+            <img src="/cooks-kitchen-mark.svg" alt="" />
+          </span>
+          <span className="landing-wordmark">
+            <span>Cook&apos;s</span>
+            <span>Kitchen</span>
+          </span>
         </a>
         <div className="landing-nav-actions">
           <a className="landing-text-link" href="/login?next=/">Sign in</a>
@@ -14,31 +19,46 @@ export function LandingPage() {
 
       <section className="landing-hero">
         <div className="landing-hero-copy">
-          <p className="eyebrow">A SHARED DINNER PLAN FOR REAL LIFE</p>
-          <h1>Spend less time deciding what&apos;s for dinner.</h1>
+          <p className="landing-kicker"><span aria-hidden="true">♥</span> Plan together. Eat together.</p>
+          <h1>A calmer way to answer <em>what&apos;s for dinner?</em></h1>
           <p className="landing-lede">
-            Cook&apos;s Kitchen gives your household one simple place to keep favorite recipes, plan the week or month, and make dinner decisions together.
+            Keep the recipes your household loves, build a dinner plan for the week or month, and give everyone one shared place to see what&apos;s coming.
           </p>
           <div className="landing-hero-actions">
             <a className="landing-button" href="/login?mode=signup&next=/">Start your kitchen</a>
             <a className="landing-secondary-button" href="/login?next=/">I already have an account</a>
           </div>
-          <p className="landing-fine-print">Free to get started. Google sign-in makes setup quick.</p>
+          <div className="landing-proof" aria-label="Cook's Kitchen highlights">
+            <span>Shared household</span>
+            <span>Week + month planning</span>
+            <span>Your recipe bank</span>
+          </div>
         </div>
 
-        <div className="landing-preview" aria-label="Example weekly dinner plan">
-          <div className="landing-preview-top">
-            <div>
-              <p className="eyebrow">THE PLAN</p>
-              <h2>This week</h2>
+        <div className="landing-preview-wrap">
+          <div className="landing-preview-accent landing-preview-accent-one" aria-hidden="true" />
+          <div className="landing-preview-accent landing-preview-accent-two" aria-hidden="true" />
+          <div className="landing-preview" aria-label="Example weekly dinner plan">
+            <div className="landing-preview-top">
+              <div className="landing-preview-title">
+                <span className="landing-preview-mini-mark" aria-hidden="true"><img src="/cooks-kitchen-mark.svg" alt="" /></span>
+                <div>
+                  <p className="eyebrow">THE PLAN</p>
+                  <h2>This week</h2>
+                </div>
+              </div>
+              <div className="landing-preview-toggle"><span className="active">Week</span><span>Month</span></div>
             </div>
-            <div className="landing-preview-toggle"><span className="active">Week</span><span>Month</span></div>
-          </div>
-          <div className="landing-preview-grid">
-            <div className="landing-day-card planned"><span>MON</span><strong>Chicken enchiladas</strong><small>From your recipe bank</small></div>
-            <div className="landing-day-card planned"><span>TUE</span><strong>Eating out</strong><small>No cooking tonight</small></div>
-            <div className="landing-day-card planned"><span>WED</span><strong>Blackened ranch chicken</strong><small>30 min total</small></div>
-            <div className="landing-day-card"><span>THU</span><strong>Not planned yet</strong><small>Choose a dinner</small></div>
+            <div className="landing-preview-grid">
+              <div className="landing-day-card planned"><span>MON</span><strong>Chicken enchiladas</strong><small>From your recipe bank</small></div>
+              <div className="landing-day-card planned"><span>TUE</span><strong>Eating out</strong><small>No cooking tonight</small></div>
+              <div className="landing-day-card planned featured"><span>WED</span><strong>Blackened ranch chicken</strong><small>30 min total</small></div>
+              <div className="landing-day-card"><span>THU</span><strong>Not planned yet</strong><small>Choose a dinner</small></div>
+            </div>
+            <div className="landing-preview-bottom">
+              <span>One plan for the whole household</span>
+              <span className="landing-preview-heart" aria-hidden="true">♥</span>
+            </div>
           </div>
         </div>
       </section>
@@ -46,28 +66,30 @@ export function LandingPage() {
       <section className="landing-how">
         <div className="landing-section-heading">
           <p className="eyebrow">HOW IT WORKS</p>
-          <h2>Simple enough to actually use every week.</h2>
+          <h2>Built around the way families actually plan dinner.</h2>
+          <p>Start with what you already cook. Plan only as far ahead as you want. Keep the whole household on the same page.</p>
         </div>
         <div className="landing-feature-grid">
           <article>
-            <span className="landing-step">1</span>
-            <h3>Save your go-to recipes</h3>
-            <p>Add recipes manually or paste a recipe link and let Cook&apos;s Kitchen pull in the useful details.</p>
+            <span className="landing-step">01</span>
+            <h3>Keep the recipes you love</h3>
+            <p>Build a simple family recipe bank. Add recipes yourself or paste a link and pull in the useful details.</p>
           </article>
           <article>
-            <span className="landing-step">2</span>
-            <h3>Build the plan</h3>
-            <p>Plan dinner by week or month. Choose recipes, leftovers, eating out, or leave a night open.</p>
+            <span className="landing-step">02</span>
+            <h3>Make the plan</h3>
+            <p>Choose dinners by week or month, including recipes, leftovers, eating out, or an intentionally open night.</p>
           </article>
           <article>
-            <span className="landing-step">3</span>
-            <h3>Share one household</h3>
-            <p>Invite the people you cook with so everyone sees the same recipes and the same dinner plan.</p>
+            <span className="landing-step">03</span>
+            <h3>Share your kitchen</h3>
+            <p>Invite the people you cook with so the recipe bank and dinner plan belong to the household, not one person.</p>
           </article>
         </div>
       </section>
 
       <section className="landing-cta">
+        <img className="landing-cta-mark" src="/cooks-kitchen-mark.svg" alt="" aria-hidden="true" />
         <p className="eyebrow">YOUR KITCHEN, YOUR PLAN</p>
         <h2>Make dinner planning one less thing to think about.</h2>
         <p>Create your household, give your kitchen a name, and start with the meals you already love.</p>
@@ -75,8 +97,11 @@ export function LandingPage() {
       </section>
 
       <footer className="landing-footer">
-        <strong>Cook&apos;s Kitchen</strong>
-        <span>Shared meal planning for households.</span>
+        <div className="landing-footer-brand">
+          <img src="/cooks-kitchen-mark.svg" alt="" aria-hidden="true" />
+          <strong>Cook&apos;s Kitchen</strong>
+        </div>
+        <span>Plan together. Eat together.</span>
       </footer>
     </main>
   );
