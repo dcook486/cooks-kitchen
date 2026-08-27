@@ -87,7 +87,10 @@ export default async function LoginPage({ searchParams }: Props) {
             <input name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
           </label>
           <label>
-            Password
+            <span className="auth-label-row">
+              <span>Password</span>
+              {!signupMode && !inviteToken && <a href="/forgot-password">Forgot password?</a>}
+            </span>
             <input name="password" type="password" autoComplete={signupMode ? "new-password" : "current-password"} minLength={8} required />
           </label>
           <button className="primary wide" formAction={signupMode ? signup : login}>
@@ -100,6 +103,11 @@ export default async function LoginPage({ searchParams }: Props) {
             ? inviteToken ? "Already have an account? Sign in" : "Already have an account? Sign in"
             : inviteToken ? "Don’t use Google? Create an email/password account" : "New here? Create an account"}
         </a>
+        <div className="auth-legal-links">
+          <a href="/privacy">Privacy</a>
+          <span>·</span>
+          <a href="/terms">Terms</a>
+        </div>
       </section>
     </main>
   );
