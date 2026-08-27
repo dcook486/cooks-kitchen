@@ -3,9 +3,11 @@
 import { useState } from "react";
 import {
   createHouseholdInvitation,
+  leaveHousehold,
   removeHouseholdMember,
   revokeHouseholdInvitation,
-} from "@/app/actions";
+  transferHouseholdOwnership,
+} from "@/app/household-actions";
 
 type Member = {
   user_id: string;
@@ -31,6 +33,7 @@ type Props = {
   generatedInviteToken: string | null;
   joined: boolean;
   shareError: string | null;
+  householdNotice: string | null;
 };
 
 const siteUrl = "https://cooks-kitchen.vercel.app";
@@ -59,6 +62,13 @@ function householdInitials(name: string) {
     .join("") || "CK";
 }
 
+function noticeCopy(value: string | null) {
+  if (value === "invite-revoked") return "Invitation revoked. That private link can no longer be used.";
+  if (value === "member-removed") return "Household member removed. Their Cook's Kitchen account was not deleted.";
+  if (value === "ownership-transferred") return "Ownership transferred. You are now a household member and the new owner manages membership and invitations.";
+  return null;
+}
+
 function emailInviteHref(email: string, householdName: string, link: string) {
   const subject = `Join ${householdName} on Cook's Kitchen`;
   const body = [
@@ -84,6 +94,7 @@ export function HouseholdSharing({
   generatedInviteToken,
   joined,
   shareError,
+  householdNotice,
 }: Props) {
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const generatedInvite = generatedInviteToken
@@ -91,6 +102,7 @@ export function HouseholdSharing({
     : null;
   const generatedLink = generatedInviteToken ? `${siteUrl}/invite/${generatedInviteToken}` : null;
   const isOwner = role === "owner";
+  const notice = noticeCopy(householdNotice);
 
   async function copyLink(link: string) {
     await navigator.clipboard.writeText(link);
@@ -133,6 +145,7 @@ export function HouseholdSharing({
       </div>
 
       {joined && <div className="form-alert success">You joined {householdName}. Your recipes and weekly plan are now shared.</div>}
+      {notice && <div className="form-alert success">{notice}</div>}
       {shareError && <div className="form-alert error">{shareError}</div>}
 
       {generatedLink && generatedInvite && (
@@ -196,19 +209,34 @@ export function HouseholdSharing({
 
                   <div className="member-actions">
                     {isOwner && !memberIsOwner ? (
-                      <form
-                        action={removeHouseholdMember}
-                        onSubmit={(event) => {
-                          const confirmed = window.confirm(
-                            `Remove ${member.display_name} from ${householdName}? They will immediately lose access to the shared recipes and meal plan.`,
-                          );
-                          if (!confirmed) event.preventDefault();
-                        }}
-                      >
-                        <input type="hidden" name="household_id" value={householdId} />
-                        <input type="hidden" name="user_id" value={member.user_id} />
-                        <button className="remove-member-button" type="submit">Remove</button>
-                      </form>
+                      <>
+                        <form
+                          action={transferHouseholdOwnership}
+                          onSubmit={(event) => {
+                            const confirmed = window.confirm(
+                              `Make ${member.display_name} the owner of ${householdName}? You will become a regular household member.`,
+                            );
+                            if (!confirmed) event.preventDefault();
+                          }}
+                        >
+                          <input type="hidden" name="household_id" value={householdId} />
+                          <input type="hidden" name="user_id" value={member.user_id} />
+                          <button className="transfer-owner-button" type="submit">Make owner</button>
+                        </form>
+                        <form
+                          action={removeHouseholdMember}
+                          onSubmit={(event) => {
+                            const confirmed = window.confirm(
+                              `Remove ${member.display_name} from ${householdName}? They will immediately lose access to the shared recipes and meal plan.`,
+                            );
+                            if (!confirmed) event.preventDefault();
+                          }}
+                        >
+                          <input type="hidden" name="household_id" value={householdId} />
+                          <input type="hidden" name="user_id" value={member.user_id} />
+                          <button className="remove-member-button" type="submit">Remove</button>
+                        </form>
+                      </>
                     ) : (
                       <span className="member-access-label">{memberIsOwner ? "Manages household" : "Shared access"}</span>
                     )}
@@ -219,7 +247,10 @@ export function HouseholdSharing({
           </div>
 
           {isOwner && members.length > 1 && (
-            <p className="member-help-text">Removing someone only removes their access to this household. It does not delete their Cook&apos;s Kitchen account.</p>
+            <div className="member-help-text ownership-help">
+              <strong>Need someone else to take over?</strong>
+              <span>Transfer ownership first. You&apos;ll stay in the kitchen as a regular member and can leave afterward if you want.</span>
+            </div>
           )}
         </div>
 
@@ -275,8 +306,16 @@ export function HouseholdSharing({
                           <button className="secondary compact" type="button" onClick={() => copyLink(link)}>
                             {copiedLink === link ? "Copied" : "Copy"}
                           </button>
-                          <form action={revokeHouseholdInvitation}>
+                          <form
+                            action={revokeHouseholdInvitation}
+                            onSubmit={(event) => {
+                              if (!window.confirm(`Revoke the invitation for ${invite.invited_email}? Their current link will stop working.`)) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
                             <input type="hidden" name="id" value={invite.id} />
+                            <input type="hidden" name="household_id" value={householdId} />
                             <button className="danger-link" type="submit">Revoke</button>
                           </form>
                         </div>
@@ -287,11 +326,29 @@ export function HouseholdSharing({
               )}
             </>
           ) : (
-            <div className="member-info-card">
+            <div className="member-info-card member-lifecycle-card">
               <div className="member-info-icon" aria-hidden="true">CK</div>
               <p className="eyebrow">SHARED HOUSEHOLD</p>
               <h3>You&apos;re part of {householdName}</h3>
-              <p>You can add recipes and update the weekly dinner plan. Invitations and household membership are managed by the owner.</p>
+              <p>You can add recipes and update the dinner plan. Invitations, member removal, and ownership are managed by the household owner.</p>
+
+              <div className="leave-household-box">
+                <div>
+                  <strong>Leave this household</strong>
+                  <span>Your account stays active, but you&apos;ll lose access to this household&apos;s recipes and plans.</span>
+                </div>
+                <form
+                  action={leaveHousehold}
+                  onSubmit={(event) => {
+                    if (!window.confirm(`Leave ${householdName}? You will immediately lose access to its shared recipes and meal plan.`)) {
+                      event.preventDefault();
+                    }
+                  }}
+                >
+                  <input type="hidden" name="household_id" value={householdId} />
+                  <button className="remove-member-button" type="submit">Leave household</button>
+                </form>
+              </div>
             </div>
           )}
         </div>
