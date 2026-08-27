@@ -19,6 +19,7 @@ export function LandingPage() {
             <a className="landing-button" href="/login?mode=signup&next=/">Start your kitchen</a>
             <a className="landing-secondary-button" href="/login?next=/">I already have an account</a>
           </div>
+          <p className="landing-trust-line">Free to start <span aria-hidden="true">·</span> Made for shared households</p>
           <div className="landing-proof" aria-label="Cook's Kitchen highlights">
             <span>Shared household</span>
             <span>Week + month planning</span>
