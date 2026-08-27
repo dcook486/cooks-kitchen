@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { logout } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
-import { FeedbackModal } from "@/components/feedback-modal";
 
 type Props = {
   displayName: string;
@@ -34,10 +33,7 @@ function safeAvatarUrl(value: unknown) {
 export function AccountMenu({ displayName }: Props) {
   const [email, setEmail] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const menuRef = useRef<HTMLDetailsElement>(null);
   const initials = useMemo(() => initialsFor(displayName), [displayName]);
-  const closeFeedback = useCallback(() => setFeedbackOpen(false), []);
 
   useEffect(() => {
     let active = true;
@@ -58,59 +54,47 @@ export function AccountMenu({ displayName }: Props) {
     };
   }, []);
 
-  function openFeedback() {
-    if (menuRef.current) menuRef.current.open = false;
-    setFeedbackOpen(true);
-  }
-
   return (
-    <>
-      <details className="account-menu" ref={menuRef}>
-        <summary className="account-menu-trigger" aria-label="Open account menu">
+    <details className="account-menu">
+      <summary className="account-menu-trigger" aria-label="Open account menu">
+        <span
+          className={`account-avatar ${avatarUrl ? "has-image" : ""}`}
+          style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
+          aria-hidden="true"
+        >
+          {!avatarUrl && initials}
+        </span>
+        <span className="account-trigger-copy">
+          <strong>{displayName}</strong>
+          <span>Account</span>
+        </span>
+        <span className="account-chevron" aria-hidden="true">⌄</span>
+      </summary>
+
+      <div className="account-popover">
+        <div className="account-popover-heading">
           <span
-            className={`account-avatar ${avatarUrl ? "has-image" : ""}`}
+            className={`account-avatar large ${avatarUrl ? "has-image" : ""}`}
             style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
             aria-hidden="true"
           >
             {!avatarUrl && initials}
           </span>
-          <span className="account-trigger-copy">
+          <div>
             <strong>{displayName}</strong>
-            <span>Account</span>
-          </span>
-          <span className="account-chevron" aria-hidden="true">⌄</span>
-        </summary>
-
-        <div className="account-popover">
-          <div className="account-popover-heading">
-            <span
-              className={`account-avatar large ${avatarUrl ? "has-image" : ""}`}
-              style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
-              aria-hidden="true"
-            >
-              {!avatarUrl && initials}
-            </span>
-            <div>
-              <strong>{displayName}</strong>
-              {email && <span>{email}</span>}
-            </div>
+            {email && <span>{email}</span>}
           </div>
-
-          <div className="account-menu-links">
-            <a href="/profile"><span>Profile</span><span aria-hidden="true">→</span></a>
-            <a href="/household"><span>Household</span><span aria-hidden="true">→</span></a>
-            <button type="button" className="account-feedback-link" onClick={openFeedback}>
-              <span>Send feedback</span><span aria-hidden="true">♡</span>
-            </button>
-          </div>
-
-          <form action={logout} className="account-signout-form">
-            <button type="submit">Sign out</button>
-          </form>
         </div>
-      </details>
 
-      <FeedbackModal open={feedbackOpen} onClose={closeFeedback} />
-    </>
+        <div className="account-menu-links">
+          <a href="/profile"><span>Profile</span><span aria-hidden="true">→</span></a>
+          <a href="/household"><span>Household</span><span aria-hidden="true">→</span></a>
+        </div>
+
+        <form action={logout} className="account-signout-form">
+          <button type="submit">Sign out</button>
+        </form>
+      </div>
+    </details>
   );
 }
