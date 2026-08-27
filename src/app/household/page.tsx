@@ -9,6 +9,7 @@ type Props = {
     invite?: string;
     joined?: string;
     share_error?: string;
+    household_notice?: string;
     identity_saved?: string;
     identity_error?: string;
   }>;
@@ -106,6 +107,7 @@ export default async function HouseholdPage({ searchParams }: Props) {
           generatedInviteToken={params.invite ?? null}
           joined={params.joined === "1"}
           shareError={params.share_error ?? null}
+          householdNotice={params.household_notice ?? null}
         />
       </main>
     </div>
