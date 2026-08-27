@@ -12,13 +12,13 @@ import "./sharing.css";
 import "./profile.css";
 import "./household-refresh.css";
 import "./household-identity.css";
+import "./household-lifecycle.css";
 import "./landing.css";
 import "./landing-brand.css";
 import "./app-brand.css";
 import "./onboarding-refresh.css";
 import "./avatar-fix.css";
 
-// Deployment retry touch after Vercel rate limiting (second retry).
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
 const brandSans = Inter({ subsets: ["latin"], variable: "--font-brand-sans" });
