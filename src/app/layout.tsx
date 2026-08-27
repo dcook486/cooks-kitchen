@@ -19,6 +19,7 @@ import "./app-brand.css";
 import "./onboarding-refresh.css";
 import "./account-lifecycle.css";
 import "./avatar-fix.css";
+import "./mobile-qa.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
