@@ -8,10 +8,37 @@ type Props = {
   searchParams: Promise<{ error?: string }>;
 };
 
+function InviteUnavailable() {
+  return (
+    <main className="onboarding-page invite-landing-page">
+      <section className="onboarding-card invite-card refreshed-invite-card">
+        <div className="onboarding-icon">🔒</div>
+        <p className="eyebrow">HOUSEHOLD INVITATION</p>
+        <h1>Invite unavailable</h1>
+        <p>This invitation has expired, been revoked, already been used, or could not be found.</p>
+        <a className="primary link-button wide" href="/">Return to Cook&apos;s Kitchen</a>
+      </section>
+    </main>
+  );
+}
+
 export default async function InvitePage({ params, searchParams }: Props) {
   const { token } = await params;
   const query = await searchParams;
   const supabase = await createClient();
+  const validTokenFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+
+  if (!validTokenFormat) return <InviteUnavailable />;
+
+  // Check only whether this bearer-token invitation is usable before asking someone
+  // to authenticate. The public RPC deliberately exposes no household or email data.
+  const { data: inviteAvailable, error: availabilityError } = await supabase.rpc(
+    "is_household_invitation_available",
+    { invite_token: token },
+  );
+
+  if (availabilityError || inviteAvailable !== true) return <InviteUnavailable />;
+
   const { data: claimsData } = await supabase.auth.getClaims();
   const userId = claimsData?.claims?.sub;
 
@@ -25,19 +52,7 @@ export default async function InvitePage({ params, searchParams }: Props) {
   ]);
   const invitation = Array.isArray(data) ? data[0] : null;
 
-  if (error || !invitation) {
-    return (
-      <main className="onboarding-page">
-        <section className="onboarding-card invite-card refreshed-invite-card">
-          <div className="onboarding-icon">🔒</div>
-          <p className="eyebrow">HOUSEHOLD INVITATION</p>
-          <h1>Invite unavailable</h1>
-          <p>This invitation could not be found or is no longer available.</p>
-          <a className="primary link-button wide" href="/">Return to Cook&apos;s Kitchen</a>
-        </section>
-      </main>
-    );
-  }
+  if (error || !invitation) return <InviteUnavailable />;
 
   const expired = new Date(invitation.expires_at).getTime() <= Date.now();
   const unavailable = Boolean(invitation.accepted_at || invitation.revoked_at || expired);
