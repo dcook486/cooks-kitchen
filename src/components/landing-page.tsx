@@ -2,9 +2,6 @@ export function LandingPage() {
   return (
     <main className="landing-shell">
       <header className="landing-nav">
-        <a className="landing-header-brand" href="/" aria-label="Cook's Kitchen home">
-          <img className="landing-header-logo" src="/cooks-kitchen-horizontal-v2.webp" alt="Cook's Kitchen" />
-        </a>
         <div className="landing-nav-actions">
           <a className="landing-text-link" href="/login?next=/">Sign in</a>
           <a className="landing-button small" href="/login?mode=signup&next=/">Create your kitchen</a>
@@ -14,7 +11,7 @@ export function LandingPage() {
       <section className="landing-hero">
         <div className="landing-hero-copy">
           <p className="landing-kicker"><span aria-hidden="true">♥</span> Plan together. Eat together.</p>
-          <h1>A calmer way to answer <em>what&apos;s for dinner?</em></h1>
+          <h1>An easier way to answer <em>what&apos;s for dinner?</em></h1>
           <p className="landing-lede">
             Keep the recipes your household loves, build a dinner plan for the week or month, and give everyone one shared place to see what&apos;s coming.
           </p>
