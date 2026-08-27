@@ -16,14 +16,18 @@ select {
 .brand-block,
 .meal-picker-button-copy,
 .recipe-card,
-.day-recipe-hero-copy {
+.day-recipe-hero-copy,
+.recipe-detail-title,
+.recipe-edit-heading {
   min-width: 0;
 }
 
 .brand-block h1,
 .meal-name,
 .recipe-card h3,
-.day-recipe-hero h3 {
+.day-recipe-hero h3,
+.recipe-detail-title h1,
+.recipe-edit-heading h1 {
   overflow-wrap: anywhere;
 }
 
@@ -31,8 +35,19 @@ select {
   .auth-page,
   .onboarding-page,
   .onboarding-refresh-page,
-  .landing-shell {
+  .landing-shell,
+  .profile-page,
+  .legal-page,
+  .invite-landing-page {
     min-height: 100dvh;
+  }
+}
+
+@media (max-width: 720px) {
+  .account-popover {
+    max-height: calc(100dvh - 100px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 
