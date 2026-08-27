@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { DeleteAccountForm } from "@/components/delete-account-form";
 import { createClient } from "@/lib/supabase/server";
 import { updateProfile } from "./actions";
 
@@ -48,9 +49,14 @@ export default async function ProfilePage({ searchParams }: Props) {
   ]);
 
   let householdName: string | null = null;
+  let householdMemberCount = 0;
   if (membership?.household_id) {
-    const { data: household } = await supabase.from("households").select("name").eq("id", membership.household_id).maybeSingle();
+    const [{ data: household }, { count }] = await Promise.all([
+      supabase.from("households").select("name").eq("id", membership.household_id).maybeSingle(),
+      supabase.from("household_members").select("user_id", { count: "exact", head: true }).eq("household_id", membership.household_id),
+    ]);
     householdName = household?.name ?? null;
+    householdMemberCount = count ?? 0;
   }
 
   const metadata = user.user_metadata ?? {};
@@ -61,6 +67,13 @@ export default async function ProfilePage({ searchParams }: Props) {
     : typeof user.app_metadata?.provider === "string"
       ? [user.app_metadata.provider]
       : [];
+  const hasEmailPassword = providers.includes("email");
+  const isSharedOwner = membership?.role === "owner" && householdMemberCount > 1;
+  const deletionConsequence = membership?.role === "owner"
+    ? "Because you are the only member, this will also permanently delete this household, its recipes, and its meal plan."
+    : householdName
+      ? "Your login and household access will be removed, but the shared household, recipes, and meal plan will remain for the other members."
+      : "Your Cook's Kitchen account and profile will be permanently deleted.";
 
   return (
     <main className="profile-page">
@@ -117,8 +130,34 @@ export default async function ProfilePage({ searchParams }: Props) {
                 <dd>{householdName ?? "No household"}{membership?.role ? ` · ${membership.role === "owner" ? "Owner" : "Member"}` : ""}</dd>
               </div>
             </dl>
-            {householdName && <a className="secondary link-button wide profile-household-link" href="/?section=household">Manage household</a>}
+            <div className="profile-account-actions">
+              {householdName && <a className="secondary link-button wide profile-household-link" href="/household">Manage household</a>}
+              {hasEmailPassword && <a className="secondary link-button wide" href={`/forgot-password?email=${encodeURIComponent(user.email ?? "")}`}>Reset password</a>}
+            </div>
           </section>
+        </div>
+
+        <section className="profile-card profile-danger-zone">
+          <div className="profile-danger-copy">
+            <p className="eyebrow">ACCOUNT DELETION</p>
+            <h2>Delete account</h2>
+            {isSharedOwner ? (
+              <p>You own a shared household with other members. To protect everyone&apos;s recipes and meal plan, transfer ownership to another member before deleting your account.</p>
+            ) : (
+              <p>{deletionConsequence} This cannot be undone.</p>
+            )}
+          </div>
+          {isSharedOwner ? (
+            <a className="secondary link-button profile-transfer-link" href="/household">Transfer ownership →</a>
+          ) : (
+            <DeleteAccountForm consequence={deletionConsequence} />
+          )}
+        </section>
+
+        <div className="profile-legal-links">
+          <a href="/privacy">Privacy</a>
+          <span>·</span>
+          <a href="/terms">Terms</a>
         </div>
       </div>
     </main>
