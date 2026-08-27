@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { trackProductEvent } from "@/lib/analytics";
 import { createClient } from "@/lib/supabase/server";
 
 function clean(value: FormDataEntryValue | null) {
@@ -93,6 +94,16 @@ export async function saveImportedRecipe(formData: FormData) {
     .single();
 
   if (error || !recipe) throw new Error(error?.message ?? "Could not save imported recipe.");
+
+  const onboarding = Boolean(next?.startsWith("/onboarding"));
+  await trackProductEvent({
+    supabase,
+    userId,
+    eventName: "recipe_imported",
+    householdId,
+    pagePath: "/recipes/import",
+    properties: { onboarding },
+  });
 
   revalidatePath("/");
   revalidatePath("/onboarding");
