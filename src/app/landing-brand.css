@@ -3,7 +3,22 @@
 }
 
 .landing-nav {
-  justify-content: flex-end;
+  justify-content: space-between;
+}
+
+.landing-header-brand {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.landing-header-logo {
+  display: block;
+  width: auto;
+  height: 54px;
+  max-width: min(360px, 48vw);
+  object-fit: contain;
 }
 
 .landing-hero-copy h1,
@@ -85,8 +100,20 @@
 }
 
 @media (max-width: 720px) {
+  .landing-header-logo {
+    height: 42px;
+    max-width: 52vw;
+  }
+
   .landing-cta-badge {
     width: 96px;
     height: 96px;
+  }
+}
+
+@media (max-width: 390px) {
+  .landing-header-logo {
+    height: 36px;
+    max-width: 47vw;
   }
 }
