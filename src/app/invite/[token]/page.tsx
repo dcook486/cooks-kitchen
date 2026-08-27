@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { acceptHouseholdInvitation } from "@/app/actions";
+import { acceptHouseholdInvitation } from "@/app/household-actions";
 import { createClient } from "@/lib/supabase/server";
 import { SwitchInviteAccountButton } from "./switch-account-button";
 
