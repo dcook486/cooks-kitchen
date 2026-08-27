@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { login, signup } from "@/app/actions";
+import { login } from "@/app/actions";
+import { signupWithEmail } from "@/app/email-auth-actions";
 import { createClient } from "@/lib/supabase/server";
 import GoogleSignInButton from "./google-sign-in-button";
 
@@ -93,7 +94,7 @@ export default async function LoginPage({ searchParams }: Props) {
             </span>
             <input name="password" type="password" autoComplete={signupMode ? "new-password" : "current-password"} minLength={8} required />
           </label>
-          <button className="primary wide" formAction={signupMode ? signup : login}>
+          <button className="primary wide" formAction={signupMode ? signupWithEmail : login}>
             {signupMode ? "Create account" : inviteToken ? "Sign in and continue" : "Sign in"}
           </button>
         </form>
