@@ -11,7 +11,7 @@ export default function PrivacyPage() {
           <div className="legal-content">
             <section>
               <h2>What Cook&apos;s Kitchen collects</h2>
-              <p>Cook&apos;s Kitchen stores the information needed to provide the service, including your account email, display name, household membership, saved recipes, meal plans, household settings, invitations, and photos you choose to upload.</p>
+              <p>Cook&apos;s Kitchen stores the information needed to provide the service, including your account email, display name, household membership, saved recipes, meal plans, household settings, invitations, photos you choose to upload, feedback you choose to submit, and limited diagnostic information used to identify errors and improve reliability.</p>
             </section>
 
             <section>
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2>How information is used</h2>
-              <p>Your information is used to operate Cook&apos;s Kitchen, keep your household&apos;s recipes and meal plan synchronized, provide shared-household features, secure accounts, troubleshoot problems, and improve the product.</p>
+              <p>Your information is used to operate Cook&apos;s Kitchen, keep your household&apos;s recipes and meal plan synchronized, provide shared-household features, secure accounts, respond to feedback, troubleshoot problems, monitor reliability, and improve the product.</p>
             </section>
 
             <section>
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2>Service providers</h2>
-              <p>Cook&apos;s Kitchen relies on third-party infrastructure providers for functions such as hosting, authentication, database storage, and file storage. These providers process information as needed to operate the service.</p>
+              <p>Cook&apos;s Kitchen relies on third-party infrastructure providers for functions such as hosting, authentication, database storage, file storage, and error monitoring. These providers process information as needed to operate and protect the service.</p>
             </section>
 
             <section>
