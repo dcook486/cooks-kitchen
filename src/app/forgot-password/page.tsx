@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { requestPasswordReset } from "@/app/password-actions";
-import { createClient } from "@/lib/supabase/server";
 
 type Props = {
   searchParams: Promise<{ error?: string; sent?: string; email?: string }>;
@@ -9,10 +7,6 @@ type Props = {
 
 export default async function ForgotPasswordPage({ searchParams }: Props) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (data?.claims?.sub && !params.sent) redirect("/profile");
-
   const sent = params.sent === "1";
 
   return (
