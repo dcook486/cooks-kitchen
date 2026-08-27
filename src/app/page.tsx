@@ -42,6 +42,13 @@ function mondayFor(value: string) {
   return date.toISOString().slice(0, 10);
 }
 
+function sundayFor(value: string) {
+  const date = dateFromIso(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setUTCDate(date.getUTCDate() - date.getUTCDay());
+  return date.toISOString().slice(0, 10);
+}
+
 function firstOfMonth(value: string) {
   const date = dateFromIso(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -112,15 +119,16 @@ export default async function Home({ searchParams }: HomeProps) {
   }
 
   monthAnchor = firstOfMonth(monthAnchor) ?? firstOfMonth(today)!;
-  const monthGridStart = mondayFor(monthAnchor)!;
+  const monthGridStart = sundayFor(monthAnchor)!;
   const monthGridEnd = addDays(monthGridStart, 41);
+  const firstPlanWeek = mondayFor(monthGridStart)!;
   const lastPlanWeek = mondayFor(monthGridEnd)!;
 
   const { data: monthPlans } = await supabase
     .from("meal_plans")
     .select("id, week_start")
     .eq("household_id", membership.household_id)
-    .gte("week_start", monthGridStart)
+    .gte("week_start", firstPlanWeek)
     .lte("week_start", lastPlanWeek)
     .order("week_start", { ascending: true });
 
