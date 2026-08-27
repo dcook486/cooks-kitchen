@@ -1,0 +1,126 @@
+/* Account recovery, deletion, and legal pages */
+.auth-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-label-row > a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.auth-label-row > a:hover { text-decoration: underline; }
+
+.auth-legal-links,
+.profile-legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .72rem;
+  margin-top: 18px;
+}
+
+.auth-legal-links a,
+.profile-legal-links a { color: inherit; text-decoration: none; }
+.auth-legal-links a:hover,
+.profile-legal-links a:hover { color: var(--text); text-decoration: underline; }
+
+.auth-recovery-note {
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.5;
+  text-align: center;
+  margin: 16px 0 0;
+}
+
+.auth-single-page .auth-recovery-brand h1 { max-width: 620px; }
+
+.profile-account-actions {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+.profile-account-actions .profile-household-link { margin-top: 0; }
+
+.profile-danger-zone {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, .72fr);
+  align-items: center;
+  gap: 34px;
+  border-color: #ead4cf;
+  background: linear-gradient(135deg, #fffdfb 0%, #fff7f4 100%);
+  box-shadow: 0 12px 34px rgba(98, 52, 45, .055);
+}
+
+.profile-danger-zone .eyebrow { color: #a45b50; }
+.profile-danger-zone h2 { color: #713f38; }
+.profile-danger-copy > p:last-child {
+  margin: 9px 0 0;
+  color: #7b6965;
+  line-height: 1.6;
+  max-width: 620px;
+}
+
+.delete-account-form { display: grid; gap: 11px; }
+.delete-account-form label { color: #713f38; }
+.delete-account-form input { background: #fff; border-color: #e5c9c3; }
+.delete-account-form input:focus { border-color: #c9897d; box-shadow: 0 0 0 3px rgba(164,91,80,.09); }
+
+.delete-account-button {
+  border: 1px solid #a85247;
+  border-radius: 12px;
+  background: #a85247;
+  color: #fff;
+  padding: 11px 14px;
+  font-weight: 850;
+}
+.delete-account-button:hover:not(:disabled) { background: #91473e; }
+.delete-account-button:disabled { opacity: .42; cursor: not-allowed; }
+.profile-transfer-link { min-width: 220px; }
+
+.legal-page {
+  min-height: 100vh;
+  padding: 46px 22px 70px;
+  background: var(--bg);
+}
+
+.legal-shell { width: min(820px, 100%); margin: 0 auto; }
+.legal-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: clamp(28px, 5vw, 48px);
+  box-shadow: var(--shadow);
+}
+.legal-card h1 { font-size: clamp(2.4rem, 6vw, 3.8rem); }
+.legal-effective { color: var(--muted); margin: 10px 0 28px; font-size: .8rem; }
+.legal-content { display: grid; gap: 25px; }
+.legal-content section { display: grid; gap: 8px; }
+.legal-content h2 { font-size: 1.35rem; }
+.legal-content p,
+.legal-content li { color: #66737a; line-height: 1.7; font-size: .9rem; }
+.legal-content p { margin: 0; }
+.legal-content ul { margin: 0; padding-left: 20px; }
+.legal-content a { color: var(--accent); }
+.legal-footer-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 25px;
+  margin-top: 27px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 720px) {
+  .profile-danger-zone { grid-template-columns: 1fr; gap: 22px; }
+  .profile-transfer-link { width: 100%; }
+  .legal-page { padding: 26px 16px 50px; }
+  .legal-card { border-radius: 20px; padding: 26px 20px; }
+}
