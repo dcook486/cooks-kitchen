@@ -9,3 +9,5 @@ Sentry.init({
   sendDefaultPii: false,
   tracesSampleRate: 0.05,
 });
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
