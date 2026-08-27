@@ -54,7 +54,7 @@ export default async function HouseholdPage({ searchParams }: Props) {
 
   let invitations: Array<{
     id: string;
-    invited_email: string;
+    invited_email: string | null;
     token: string;
     expires_at: string;
     created_at: string;
