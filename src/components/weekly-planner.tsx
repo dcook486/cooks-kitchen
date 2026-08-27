@@ -52,7 +52,7 @@ type PickerDay = {
 } | null;
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const dayShortNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const monthDayShortNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const quickChoices = [
   { value: "leftovers", icon: "↻", title: "Leftovers", description: "Use what’s already in the fridge" },
@@ -74,6 +74,12 @@ function mondayFor(value: string) {
   const date = dateFromIso(value);
   const weekday = date.getUTCDay();
   date.setUTCDate(date.getUTCDate() + (weekday === 0 ? -6 : 1 - weekday));
+  return date.toISOString().slice(0, 10);
+}
+
+function sundayFor(value: string) {
+  const date = dateFromIso(value);
+  date.setUTCDate(date.getUTCDate() - date.getUTCDay());
   return date.toISOString().slice(0, 10);
 }
 
@@ -221,7 +227,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const normalizedMonth = firstOfMonth(monthAnchor);
   const previousMonth = addMonths(normalizedMonth, -1);
   const nextMonth = addMonths(normalizedMonth, 1);
-  const monthGridStart = mondayFor(normalizedMonth);
+  const monthGridStart = sundayFor(normalizedMonth);
   const monthDates = Array.from({ length: 42 }, (_, index) => addDays(monthGridStart, index));
 
   const [mode, setMode] = useState<PlannerMode>(initialMode);
@@ -554,7 +560,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
       ) : (
         <div className="month-calendar-shell">
           <div className="month-weekdays" aria-hidden="true">
-            {dayShortNames.map((day) => <span key={day}>{day}</span>)}
+            {monthDayShortNames.map((day) => <span key={day}>{day}</span>)}
           </div>
           <div className="month-calendar-grid">
             {monthDates.map((mealDate) => {
