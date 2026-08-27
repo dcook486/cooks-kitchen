@@ -11,7 +11,7 @@ export default function PrivacyPage() {
           <div className="legal-content">
             <section>
               <h2>What Cook&apos;s Kitchen collects</h2>
-              <p>Cook&apos;s Kitchen stores the information needed to provide the service, including your account email, display name, household membership, saved recipes, meal plans, household settings, invitations, photos you choose to upload, feedback you choose to submit, and limited diagnostic information used to identify errors and improve reliability.</p>
+              <p>Cook&apos;s Kitchen stores the information needed to provide the service, including your account email, display name, household membership, saved recipes, meal plans, household settings, invitations, photos you choose to upload, feedback you choose to submit, limited diagnostic information used to identify errors, and limited product-usage events used to understand whether core features are working well.</p>
             </section>
 
             <section>
@@ -20,8 +20,13 @@ export default function PrivacyPage() {
             </section>
 
             <section>
+              <h2>Product analytics</h2>
+              <p>Cook&apos;s Kitchen records a small set of first-party product events, such as completing onboarding, adding or importing a recipe, planning dinner, sending or accepting a household invitation, and sending feedback. These events may include your account or household identifier, the page where the action occurred, a timestamp, and limited non-sensitive context such as whether a dinner used a recipe or leftovers. Cook&apos;s Kitchen does not use session replay or record recipe text, ingredients, instructions, feedback messages, or similar household content as analytics event properties.</p>
+            </section>
+
+            <section>
               <h2>How information is used</h2>
-              <p>Your information is used to operate Cook&apos;s Kitchen, keep your household&apos;s recipes and meal plan synchronized, provide shared-household features, secure accounts, respond to feedback, troubleshoot problems, monitor reliability, and improve the product.</p>
+              <p>Your information is used to operate Cook&apos;s Kitchen, keep your household&apos;s recipes and meal plan synchronized, provide shared-household features, secure accounts, respond to feedback, troubleshoot problems, monitor reliability, understand adoption of core features, and improve the product.</p>
             </section>
 
             <section>
