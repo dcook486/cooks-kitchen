@@ -97,7 +97,13 @@ export function LandingPage() {
           <img src="/cooks-kitchen-circle-v2.webp" alt="" aria-hidden="true" />
           <strong>Cook&apos;s Kitchen</strong>
         </div>
-        <span>Plan together. Eat together.</span>
+        <div className="landing-footer-meta">
+          <span>Plan together. Eat together.</span>
+          <div className="landing-footer-links">
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+          </div>
+        </div>
       </footer>
     </main>
   );
