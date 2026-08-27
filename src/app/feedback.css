@@ -1,25 +1,66 @@
-.account-menu-links button.account-feedback-link {
-  width: 100%;
+.beta-feedback-footer {
+  width: min(1180px, calc(100% - 44px));
+  margin: 18px auto 30px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 9px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: .8rem;
-  font-weight: 800;
-  text-align: left;
-  cursor: pointer;
+  gap: 18px;
+  border: 1px solid #d9e1d8;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .72);
+  box-shadow: 0 10px 30px rgba(47, 54, 48, .05);
 }
 
-.account-menu-links button.account-feedback-link:hover {
+.beta-feedback-footer-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.beta-feedback-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 27px;
+  padding: 0 9px;
+  border-radius: 999px;
   background: var(--accent-2);
   color: var(--accent);
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .09em;
 }
+
+.beta-feedback-footer-copy > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.beta-feedback-footer-copy strong { font-size: .82rem; }
+.beta-feedback-footer-copy div > span { color: var(--muted); font-size: .72rem; line-height: 1.4; }
+
+.beta-feedback-button {
+  min-height: 42px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+.beta-feedback-button:hover { filter: brightness(.96); }
+.beta-feedback-button span { font-size: 1rem; }
 
 .feedback-overlay {
   position: fixed;
@@ -210,6 +251,16 @@
 }
 
 @media (max-width: 660px) {
+  .beta-feedback-footer {
+    width: calc(100% - 28px);
+    margin: 14px auto calc(86px + env(safe-area-inset-bottom));
+    padding: 15px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .beta-feedback-footer-copy { align-items: flex-start; }
+  .beta-feedback-button { width: 100%; min-height: 46px; }
+
   .feedback-overlay {
     align-items: end;
     padding: 0;
