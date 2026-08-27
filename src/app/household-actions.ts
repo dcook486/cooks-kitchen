@@ -23,11 +23,8 @@ function householdError(message: string): never {
 export async function createHouseholdInvitation(formData: FormData) {
   const { supabase, userId } = await currentUser();
   const householdId = clean(formData.get("household_id"));
-  const email = clean(formData.get("email")).toLowerCase();
 
-  if (!householdId || !email || !email.includes("@")) {
-    householdError("Enter a valid email address.");
-  }
+  if (!householdId) householdError("Could not identify this household.");
 
   const { data: membership } = await supabase
     .from("household_members")
@@ -36,13 +33,16 @@ export async function createHouseholdInvitation(formData: FormData) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (membership?.role !== "owner") householdError("Only the household owner can send invitations.");
+  if (membership?.role !== "owner") householdError("Only the household owner can create invitations.");
 
+  // Keep only one active email-free share link at a time. Creating a new one
+  // invalidates the previous unused share link without affecting legacy
+  // email-specific invitations that may already have been sent.
   const { error: revokeError } = await supabase
     .from("household_invitations")
     .update({ revoked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("household_id", householdId)
-    .ilike("invited_email", email)
+    .is("invited_email", null)
     .is("accepted_at", null)
     .is("revoked_at", null);
 
@@ -50,7 +50,7 @@ export async function createHouseholdInvitation(formData: FormData) {
 
   const { data: invitation, error } = await supabase
     .from("household_invitations")
-    .insert({ household_id: householdId, invited_email: email, invited_by: userId })
+    .insert({ household_id: householdId, invited_by: userId })
     .select("token")
     .single();
 
