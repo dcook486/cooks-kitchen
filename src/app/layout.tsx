@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Fraunces, Inter, Libre_Baskerville } from "next/font/google";
+import { AuthenticatedFeedbackFooter } from "@/components/authenticated-feedback-footer";
 import "./globals.css";
 import "./live.css";
 import "./planner.css";
@@ -40,7 +41,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${serif.variable} ${brandSans.variable} ${brandSerif.variable}`}>{children}</body>
+      <body className={`${sans.variable} ${serif.variable} ${brandSans.variable} ${brandSerif.variable}`}>
+        {children}
+        <AuthenticatedFeedbackFooter />
+      </body>
     </html>
   );
 }
