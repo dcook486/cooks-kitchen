@@ -1,0 +1,97 @@
+/* Household ownership, leaving, and lifecycle controls */
+.member-actions {
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.transfer-owner-button {
+  border: 1px solid #cfd8cd;
+  border-radius: 10px;
+  background: #f5f7f4;
+  color: #556a56;
+  padding: 7px 10px;
+  font-size: .7rem;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.transfer-owner-button:hover {
+  background: #e6ebe4;
+  border-color: #b9c6b7;
+}
+
+.ownership-help {
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  border: 1px solid #d9e0d7;
+  border-radius: 14px;
+  background: #f7f9f6;
+}
+
+.ownership-help strong {
+  color: #2d4050;
+  font-size: .76rem;
+}
+
+.ownership-help span {
+  color: #6f7b82;
+}
+
+.member-lifecycle-card {
+  min-height: 330px;
+}
+
+.leave-household-box {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #e8e3df;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  text-align: left;
+}
+
+.leave-household-box > div {
+  display: grid;
+  gap: 4px;
+}
+
+.leave-household-box strong {
+  color: #2d4050;
+  font-size: .78rem;
+}
+
+.leave-household-box span {
+  color: #6f7b82;
+  font-size: .7rem;
+  line-height: 1.45;
+}
+
+.leave-household-box form {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.pending-invite-actions {
+  align-items: center;
+}
+
+@media (max-width: 660px) {
+  .member-actions {
+    gap: 8px;
+  }
+
+  .leave-household-box {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .leave-household-box .remove-member-button {
+    width: 100%;
+  }
+}
