@@ -57,8 +57,8 @@ export default async function InvitePage({ params, searchParams }: Props) {
   const expired = new Date(invitation.expires_at).getTime() <= Date.now();
   const unavailable = Boolean(invitation.accepted_at || invitation.revoked_at || expired);
   const currentEmail = userData.user?.email?.toLowerCase() ?? "";
-  const invitedEmail = String(invitation.invited_email).toLowerCase();
-  const wrongAccount = Boolean(currentEmail && currentEmail !== invitedEmail);
+  const invitedEmail = invitation.invited_email ? String(invitation.invited_email).toLowerCase() : null;
+  const wrongAccount = Boolean(invitedEmail && currentEmail && currentEmail !== invitedEmail);
 
   return (
     <main className="onboarding-page invite-landing-page">
@@ -70,11 +70,13 @@ export default async function InvitePage({ params, searchParams }: Props) {
           Share the same recipes and weekly dinner plan with everyone in this household.
         </p>
 
-        <div className="invite-account-summary">
-          <span>Invitation for</span>
-          <strong>{invitation.invited_email}</strong>
-          {currentEmail && <small>You&apos;re signed in as {currentEmail}</small>}
-        </div>
+        {(invitedEmail || currentEmail) && (
+          <div className="invite-account-summary">
+            <span>{invitedEmail ? "Invitation for" : "Joining as"}</span>
+            <strong>{invitedEmail ?? currentEmail}</strong>
+            {invitedEmail && currentEmail && <small>You&apos;re signed in as {currentEmail}</small>}
+          </div>
+        )}
 
         {query.error && <div className="form-alert error">{query.error}</div>}
 
@@ -83,9 +85,9 @@ export default async function InvitePage({ params, searchParams }: Props) {
         ) : wrongAccount ? (
           <div className="invite-wrong-account">
             <div className="form-alert error">
-              This invitation belongs to <strong>{invitation.invited_email}</strong>, but you&apos;re signed in as <strong>{currentEmail}</strong>.
+              This invitation belongs to <strong>{invitedEmail}</strong>, but you&apos;re signed in as <strong>{currentEmail}</strong>.
             </div>
-            <p>Switch to the invited Google account and we&apos;ll bring you right back to this invitation.</p>
+            <p>Switch to the invited account and we&apos;ll bring you right back to this invitation.</p>
             <SwitchInviteAccountButton token={token} />
           </div>
         ) : (
@@ -93,7 +95,7 @@ export default async function InvitePage({ params, searchParams }: Props) {
             <div className="invite-ready-note">
               <span aria-hidden="true">✓</span>
               <div>
-                <strong>Your account matches the invitation</strong>
+                <strong>{invitedEmail ? "Your account matches the invitation" : "Ready to join this household"}</strong>
                 <p>One more click will add you to {invitation.household_name}.</p>
               </div>
             </div>
