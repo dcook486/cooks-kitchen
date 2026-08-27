@@ -16,7 +16,7 @@ async function currentUser() {
   return { supabase, userId };
 }
 
-function householdError(message: string) {
+function householdError(message: string): never {
   redirect(`/household?share_error=${encodeURIComponent(message)}`);
 }
 
