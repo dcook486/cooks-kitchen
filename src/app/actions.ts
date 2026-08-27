@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { trackProductEvent } from "@/lib/analytics";
 import { createClient } from "@/lib/supabase/server";
 
 function clean(value: FormDataEntryValue | null) {
@@ -202,6 +203,17 @@ export async function addRecipe(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+
+  const onboarding = Boolean(next?.startsWith("/onboarding"));
+  await trackProductEvent({
+    supabase,
+    userId,
+    eventName: "recipe_added",
+    householdId,
+    pagePath: onboarding ? "/onboarding?step=recipes" : "/?section=recipes",
+    properties: { onboarding },
+  });
+
   revalidatePath("/");
   revalidatePath("/onboarding");
   if (next) redirect(next);
@@ -280,6 +292,27 @@ export async function saveDinnerPlan(formData: FormData) {
   );
 
   if (error) throw new Error(error.message);
+
+  const completedOnboarding = Boolean(next?.includes("onboarding=complete"));
+  await trackProductEvent({
+    supabase,
+    userId,
+    eventName: "dinner_planned",
+    householdId,
+    pagePath: completedOnboarding ? "/onboarding?step=plan" : next ?? "/",
+    properties: { selection_type: recipeId ? "recipe" : status, onboarding: completedOnboarding },
+  });
+
+  if (completedOnboarding) {
+    await trackProductEvent({
+      supabase,
+      userId,
+      eventName: "onboarding_completed",
+      householdId,
+      pagePath: "/onboarding?step=plan",
+    });
+  }
+
   revalidatePath("/");
   revalidatePath("/onboarding");
   if (next) redirect(next);
