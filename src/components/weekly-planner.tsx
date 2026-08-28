@@ -325,21 +325,32 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   }
 
   function openPicker(day: string, mealDate: string) {
+    const existingItem = mealPlanItems.find((entry) => entry.meal_date === mealDate && entry.meal_type === "dinner");
+    const existingRecipe = existingItem?.recipe_id
+      ? plannerRecipes.find((recipe) => recipe.id === existingItem.recipe_id)
+      : undefined;
+
     setQuery("");
     setShowQuickAdd(false);
     setQuickName("");
     setQuickUrl("");
     setQuickError("");
+    setPendingRecipeId(existingItem?.recipe_id ?? null);
+    setServingCount(String(existingItem?.planned_servings ?? existingRecipe?.servings ?? ""));
     setPickerDay({ day, mealDate });
   }
 
-  function chooseDinner(selection: string) {
+  function chooseDinner(selection: string, plannedServings: number | null = null) {
     if (!pickerDay) return;
     const mealDate = pickerDay.mealDate;
     const previousSelection = optimisticSelections[mealDate] ?? selectionFor(activeItem);
+    const previousServings = optimisticServings[mealDate] ?? activeItem?.planned_servings ?? null;
 
     setOptimisticSelections((current) => ({ ...current, [mealDate]: selection }));
+    setOptimisticServings((current) => ({ ...current, [mealDate]: plannedServings }));
     setPickerDay(null);
+    setPendingRecipeId(null);
+    setServingCount("");
     setSavingDate(mealDate);
 
     const formData = new FormData();
@@ -347,16 +358,30 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     formData.set("week_start", mondayFor(mealDate));
     formData.set("meal_date", mealDate);
     formData.set("selection", selection);
+    if (plannedServings != null) formData.set("planned_servings", String(plannedServings));
 
     startTransition(async () => {
       try {
         await saveDinnerPlan(formData);
       } catch {
         setOptimisticSelections((current) => ({ ...current, [mealDate]: previousSelection }));
+        setOptimisticServings((current) => ({ ...current, [mealDate]: previousServings }));
       } finally {
         setSavingDate((current) => current === mealDate ? null : current);
       }
     });
+  }
+
+  function selectRecipeForDinner(recipe: Recipe) {
+    setPendingRecipeId(recipe.id);
+    const existingServings = activeItem?.recipe_id === recipe.id ? activeItem.planned_servings : null;
+    setServingCount(String(existingServings ?? recipe.servings ?? ""));
+  }
+
+  function confirmRecipeDinner() {
+    if (!pendingRecipeId) return;
+    const servings = Number(servingCount);
+    chooseDinner(`recipe:${pendingRecipeId}`, Number.isFinite(servings) && servings > 0 ? servings : null);
   }
 
   function submitQuickAdd(event: FormEvent<HTMLFormElement>) {
