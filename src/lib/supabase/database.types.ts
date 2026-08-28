@@ -35,9 +35,9 @@ export type Database = {
         Relationships: []
       }
       meal_plan_items: {
-        Row: { created_at: string; custom_label: string | null; id: string; meal_date: string; meal_plan_id: string; meal_type: string; notes: string | null; recipe_id: string | null; status: string; updated_at: string }
-        Insert: { created_at?: string; custom_label?: string | null; id?: string; meal_date: string; meal_plan_id: string; meal_type?: string; notes?: string | null; recipe_id?: string | null; status?: string; updated_at?: string }
-        Update: { created_at?: string; custom_label?: string | null; id?: string; meal_date?: string; meal_plan_id?: string; meal_type?: string; notes?: string | null; recipe_id?: string | null; status?: string; updated_at?: string }
+        Row: { created_at: string; custom_label: string | null; id: string; meal_date: string; meal_plan_id: string; meal_type: string; notes: string | null; planned_servings: number | null; recipe_id: string | null; status: string; updated_at: string }
+        Insert: { created_at?: string; custom_label?: string | null; id?: string; meal_date: string; meal_plan_id: string; meal_type?: string; notes?: string | null; planned_servings?: number | null; recipe_id?: string | null; status?: string; updated_at?: string }
+        Update: { created_at?: string; custom_label?: string | null; id?: string; meal_date?: string; meal_plan_id?: string; meal_type?: string; notes?: string | null; planned_servings?: number | null; recipe_id?: string | null; status?: string; updated_at?: string }
         Relationships: [
           { foreignKeyName: "meal_plan_items_meal_plan_id_fkey"; columns: ["meal_plan_id"]; isOneToOne: false; referencedRelation: "meal_plans"; referencedColumns: ["id"] },
           { foreignKeyName: "meal_plan_items_recipe_id_fkey"; columns: ["recipe_id"]; isOneToOne: false; referencedRelation: "recipes"; referencedColumns: ["id"] },
