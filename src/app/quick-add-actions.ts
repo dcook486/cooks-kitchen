@@ -126,6 +126,7 @@ export async function quickAddRecipeAndPlan(formData: FormData): Promise<QuickAd
       custom_label: null,
       status: "planned",
       notes: null,
+      planned_servings: recipe.servings,
     },
     { onConflict: "meal_plan_id,meal_date,meal_type" },
   );
