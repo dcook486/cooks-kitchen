@@ -132,12 +132,12 @@ export default async function Home({ searchParams }: HomeProps) {
     .lte("week_start", lastPlanWeek)
     .order("week_start", { ascending: true });
 
-  let mealPlanItems: Array<{ id: string; meal_date: string; meal_type: string; recipe_id: string | null; custom_label: string | null; status: string; notes: string | null }> = [];
+  let mealPlanItems: Array<{ id: string; meal_date: string; meal_type: string; recipe_id: string | null; custom_label: string | null; status: string; notes: string | null; planned_servings: number | null }> = [];
   const planIds = (monthPlans ?? []).map((plan) => plan.id);
   if (planIds.length) {
     const { data: items } = await supabase
       .from("meal_plan_items")
-      .select("id, meal_date, meal_type, recipe_id, custom_label, status, notes")
+      .select("id, meal_date, meal_type, recipe_id, custom_label, status, notes, planned_servings")
       .in("meal_plan_id", planIds)
       .gte("meal_date", monthGridStart)
       .lte("meal_date", monthGridEnd)
