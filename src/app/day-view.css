@@ -180,6 +180,14 @@
   font-size: 1.65rem;
 }
 
+.day-scaling-note {
+  display: inline-block;
+  margin-top: 7px;
+  color: var(--accent);
+  font-size: .72rem;
+  font-weight: 750;
+}
+
 .day-ingredient-list {
   list-style: none;
   margin: 0;
