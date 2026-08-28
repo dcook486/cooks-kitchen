@@ -246,6 +246,7 @@ export async function saveDinnerPlan(formData: FormData) {
   const mealDate = clean(formData.get("meal_date"));
   const weekStart = clean(formData.get("week_start")) || mondayForIso(mealDate) || "";
   const selection = clean(formData.get("selection"));
+  const requestedServings = numberOrNull(formData.get("planned_servings"));
   const next = optionalNext(formData.get("next"));
   if (!householdId || !weekStart || !mealDate || !selection) return;
 
@@ -275,11 +276,13 @@ export async function saveDinnerPlan(formData: FormData) {
 
   let status: "planned" | "leftovers" | "eating_out" | "skipped" = "planned";
   let recipeId: string | null = null;
+  let plannedServings: number | null = null;
 
   if (selection.startsWith("recipe:")) {
     recipeId = selection.slice("recipe:".length);
-    const { data: recipe, error } = await supabase.from("recipes").select("id").eq("id", recipeId).eq("household_id", householdId).maybeSingle();
+    const { data: recipe, error } = await supabase.from("recipes").select("id, servings").eq("id", recipeId).eq("household_id", householdId).maybeSingle();
     if (error || !recipe) throw new Error("That recipe is not available in this household.");
+    plannedServings = requestedServings && requestedServings > 0 ? requestedServings : recipe.servings;
   } else if (selection === "leftovers" || selection === "eating_out" || selection === "skipped") {
     status = selection;
   } else {
@@ -287,7 +290,7 @@ export async function saveDinnerPlan(formData: FormData) {
   }
 
   const { error } = await supabase.from("meal_plan_items").upsert(
-    { meal_plan_id: mealPlanId, meal_date: mealDate, meal_type: "dinner", recipe_id: recipeId, custom_label: null, status, notes: null },
+    { meal_plan_id: mealPlanId, meal_date: mealDate, meal_type: "dinner", recipe_id: recipeId, custom_label: null, status, notes: null, planned_servings: plannedServings },
     { onConflict: "meal_plan_id,meal_date,meal_type" },
   );
 
