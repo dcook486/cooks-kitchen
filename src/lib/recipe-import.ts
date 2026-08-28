@@ -142,40 +142,51 @@ function typeNames(value: unknown) {
     .map((item) => item.split(/[\/#]/).pop()?.toLowerCase() ?? "");
 }
 
-function findRecipeNode(value: unknown): JsonRecord | null {
+function collectRecipeNodes(value: unknown, output: JsonRecord[]) {
   if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findRecipeNode(item);
-      if (found) return found;
-    }
-    return null;
+    for (const item of value) collectRecipeNodes(item, output);
+    return;
   }
-  if (!isRecord(value)) return null;
-  if (typeNames(value["@type"]).includes("recipe")) return value;
+  if (!isRecord(value)) return;
+  if (typeNames(value["@type"]).includes("recipe")) output.push(value);
 
   for (const key of ["@graph", "mainEntity", "mainEntityOfPage", "subjectOf", "itemListElement"]) {
-    if (value[key]) {
-      const found = findRecipeNode(value[key]);
-      if (found) return found;
-    }
+    if (value[key]) collectRecipeNodes(value[key], output);
   }
-  return null;
+}
+
+function recipeNodeScore(recipe: JsonRecord) {
+  const ingredients = ingredientLines(recipe.recipeIngredient ?? recipe.ingredients).length;
+  const instructions = instructionLines(recipe.recipeInstructions ?? recipe.instructions).length;
+  const hasTime = [recipe.prepTime, recipe.cookTime, recipe.totalTime].some((value) => durationMinutes(value) != null);
+  const hasYield = servingsNumber(recipe.recipeYield) != null;
+
+  return (
+    ingredients * 3 +
+    instructions * 4 +
+    (plainText(recipe.name) ? 5 : 0) +
+    (plainText(recipe.description) ? 2 : 0) +
+    (hasTime ? 3 : 0) +
+    (hasYield ? 3 : 0)
+  );
 }
 
 function extractRecipeJsonLd(html: string) {
   const pattern = /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  const candidates: JsonRecord[] = [];
   let match: RegExpExecArray | null;
+
   while ((match = pattern.exec(html))) {
     const raw = match[1].replace(/^\s*<!--/, "").replace(/-->\s*$/, "").trim();
     if (!raw) continue;
     try {
-      const found = findRecipeNode(JSON.parse(raw) as unknown);
-      if (found) return found;
+      collectRecipeNodes(JSON.parse(raw) as unknown, candidates);
     } catch {
       // Keep checking other structured-data blocks.
     }
   }
-  return null;
+
+  return candidates.sort((left, right) => recipeNodeScore(right) - recipeNodeScore(left))[0] ?? null;
 }
 
 function metaAttributes(tag: string) {
