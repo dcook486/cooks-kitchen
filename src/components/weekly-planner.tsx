@@ -260,7 +260,9 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const daySelection = optimisticSelections[dayDate] ?? selectionFor(dayItem);
   const daySummary = summaryForSelection(daySelection, plannerRecipes);
   const dayRecipe = daySummary.recipeId ? plannerRecipes.find((recipe) => recipe.id === daySummary.recipeId) : undefined;
-  const dayIngredients = ingredientLines(dayRecipe?.ingredients);
+  const originalDayIngredients = ingredientLines(dayRecipe?.ingredients);
+  const dayPlannedServings = optimisticServings[dayDate] ?? dayItem?.planned_servings ?? dayRecipe?.servings ?? null;
+  const dayIngredients = scaleIngredientLines(originalDayIngredients, dayRecipe?.servings, dayPlannedServings);
   const dayInstructions = instructionLines(dayRecipe?.instructions);
   const dayPhoto = recipePhotoUrl(dayRecipe?.image_url);
   const daySource = safeWebUrl(dayRecipe?.source_url);
@@ -505,7 +507,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
               <div><span>Prep</span><strong>{dayRecipe.prep_minutes != null ? `${dayRecipe.prep_minutes} min` : "—"}</strong></div>
               <div><span>Cook</span><strong>{dayRecipe.cook_minutes != null ? `${dayRecipe.cook_minutes} min` : "—"}</strong></div>
               <div><span>Total</span><strong>{dayTotalMinutes ? `${dayTotalMinutes} min` : "—"}</strong></div>
-              <div><span>Servings</span><strong>{dayRecipe.servings ?? "—"}</strong></div>
+              <div><span>Planned servings</span><strong>{dayPlannedServings ?? dayRecipe.servings ?? "—"}</strong></div>
             </section>
 
             {dayItem?.notes && (
@@ -517,7 +519,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
 
             <div className="day-cook-grid">
               <section className="day-cook-card">
-                <div className="day-cook-card-heading"><p className="eyebrow">WHAT YOU NEED</p><h3>Ingredients</h3></div>
+                <div className="day-cook-card-heading"><p className="eyebrow">WHAT YOU NEED</p><h3>Ingredients</h3>{dayRecipe.servings && dayPlannedServings && dayRecipe.servings !== dayPlannedServings && <span className="day-scaling-note">Scaled from {dayRecipe.servings} to {dayPlannedServings} servings</span>}</div>
                 {dayIngredients.length ? (
                   <ul className="day-ingredient-list">
                     {dayIngredients.map((ingredient, index) => <li key={`${ingredient}-${index}`}>{ingredient}</li>)}
