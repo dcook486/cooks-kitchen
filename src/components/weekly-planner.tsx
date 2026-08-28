@@ -338,7 +338,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     setQuickUrl("");
     setQuickError("");
     setPendingRecipeId(existingItem?.recipe_id ?? null);
-    setServingCount(String(existingItem?.planned_servings ?? existingRecipe?.servings ?? ""));
+    setServingCount(String(existingItem?.planned_servings ?? existingRecipe?.servings ?? (existingRecipe ? 4 : "")));
     setPickerDay({ day, mealDate });
   }
 
@@ -377,7 +377,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   function selectRecipeForDinner(recipe: Recipe) {
     setPendingRecipeId(recipe.id);
     const existingServings = activeItem?.recipe_id === recipe.id ? activeItem.planned_servings : null;
-    setServingCount(String(existingServings ?? recipe.servings ?? ""));
+    setServingCount(String(existingServings ?? recipe.servings ?? 4));
   }
 
   function confirmRecipeDinner() {
@@ -673,9 +673,9 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                 <div className="meal-recipe-list">
                   {filteredRecipes.map((recipe) => {
                     const value = `recipe:${recipe.id}`;
-                    const selected = activeSelection === value;
+                    const selected = pendingRecipeId === recipe.id;
                     return (
-                      <button key={recipe.id} className={`meal-choice-card recipe ${selected ? "selected" : ""}`} type="button" onClick={() => chooseDinner(value)} disabled={quickAdding}>
+                      <button key={recipe.id} className={`meal-choice-card recipe ${selected ? "selected" : ""}`} type="button" onClick={() => selectRecipeForDinner(recipe)} disabled={quickAdding}>
                         <span className="meal-recipe-mark" aria-hidden="true">{recipe.name.slice(0, 1).toUpperCase()}</span>
                         <span className="meal-choice-copy"><strong>{recipe.name}</strong><span>{recipeMeta(recipe)}</span></span>
                         <span className="meal-choice-arrow" aria-hidden="true">{selected ? "✓" : "→"}</span>
@@ -690,6 +690,28 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                   <p>{plannerRecipes.length ? "Try a different search or add a new recipe below." : "Add your first recipe without leaving the planner."}</p>
                 </div>
               )}
+
+              {pendingRecipeId && (() => {
+                const selectedRecipe = plannerRecipes.find((recipe) => recipe.id === pendingRecipeId);
+                if (!selectedRecipe) return null;
+                const numericServings = Number(servingCount);
+                const validServings = Number.isFinite(numericServings) && numericServings > 0;
+
+                return (
+                  <div className="meal-serving-panel">
+                    <div className="meal-serving-copy">
+                      <strong>How many servings?</strong>
+                      <span>{selectedRecipe.servings ? `Recipe originally makes ${selectedRecipe.servings}.` : "Choose how much you plan to make."}</span>
+                    </div>
+                    <div className="meal-serving-controls">
+                      <button type="button" onClick={() => setServingCount(String(Math.max(0.5, (validServings ? numericServings : 1) - 1)))} aria-label="Decrease servings">−</button>
+                      <label><span>Servings</span><input type="number" min="0.5" step="0.5" inputMode="decimal" value={servingCount} onChange={(event) => setServingCount(event.target.value)} /></label>
+                      <button type="button" onClick={() => setServingCount(String((validServings ? numericServings : 0) + 1))} aria-label="Increase servings">＋</button>
+                    </div>
+                    <button className="primary meal-serving-confirm" type="button" onClick={confirmRecipeDinner} disabled={!validServings || quickAdding}>Plan {validServings ? numericServings : ""} servings</button>
+                  </div>
+                );
+              })()}
 
               <div className="meal-quick-add-block">
                 {!showQuickAdd ? (
