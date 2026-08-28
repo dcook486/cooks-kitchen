@@ -14,7 +14,7 @@ type Recipe = {
   prep_minutes: number | null; cook_minutes: number | null; servings: number | null; ingredients: unknown;
   instructions: unknown; tags: string[]; dietary_tags: string[]; is_favorite: boolean;
 };
-type MealPlanItem = { id: string; meal_date: string; meal_type: string; recipe_id: string | null; custom_label: string | null; status: string; notes: string | null };
+type MealPlanItem = { id: string; meal_date: string; meal_type: string; recipe_id: string | null; custom_label: string | null; status: string; notes: string | null; planned_servings: number | null };
 
 type Props = {
   household: Household;
