@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { saveDinnerPlan } from "@/app/actions";
 import { quickAddRecipeAndPlan } from "@/app/quick-add-actions";
+import { scaleIngredientLines } from "@/lib/ingredient-scaling";
 
 type PlannerMode = "day" | "week" | "month";
 
@@ -32,6 +33,7 @@ type MealPlanItem = {
   custom_label: string | null;
   status: string;
   notes: string | null;
+  planned_servings: number | null;
 };
 
 type Props = {
@@ -236,6 +238,9 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const [query, setQuery] = useState("");
   const [plannerRecipes, setPlannerRecipes] = useState<Recipe[]>(recipes);
   const [optimisticSelections, setOptimisticSelections] = useState<Record<string, string>>({});
+  const [optimisticServings, setOptimisticServings] = useState<Record<string, number | null>>({});
+  const [pendingRecipeId, setPendingRecipeId] = useState<string | null>(null);
+  const [servingCount, setServingCount] = useState("");
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
