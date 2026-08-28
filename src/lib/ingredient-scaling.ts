@@ -10,7 +10,7 @@ const unicodeFractions: Record<string, number> = {
   "⅞": 7 / 8,
 };
 
-function parseQuantity(value: string) {
+function parseQuantity(value: string): number | null {
   const trimmed = value.trim();
   if (unicodeFractions[trimmed] != null) return unicodeFractions[trimmed];
 
@@ -69,7 +69,7 @@ export function scaleIngredientLine(
   if (match[3] && match[4]) {
     const second = parseQuantity(match[4]);
     if (second != null) {
-      const separator = match[3].slice(match[3].indexOf(match[4]) === -1 ? 0 : 0).replace(match[4], "");
+      const separator = match[3].replace(match[4], "");
       replacement += `${separator}${formatQuantity(second * ratio)}`;
     }
   }
