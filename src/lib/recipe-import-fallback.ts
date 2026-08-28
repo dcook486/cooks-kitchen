@@ -302,15 +302,76 @@ async function extractThroughReader(input: string): Promise<ImportedRecipe> {
   };
 }
 
+function needsRenderedDetails(recipe: ImportedRecipe) {
+  return (
+    !recipe.ingredients.length ||
+    !recipe.instructions.length ||
+    recipe.servings == null ||
+    (recipe.prep_minutes == null && recipe.cook_minutes == null)
+  );
+}
+
+function mergeRecipeDetails(primary: ImportedRecipe, rendered: ImportedRecipe): ImportedRecipe {
+  const ingredients =
+    rendered.ingredients.length > primary.ingredients.length ? rendered.ingredients : primary.ingredients;
+  const instructions =
+    rendered.instructions.length > primary.instructions.length ? rendered.instructions : primary.instructions;
+  const filledFromRendered =
+    ingredients !== primary.ingredients ||
+    instructions !== primary.instructions ||
+    (primary.servings == null && rendered.servings != null) ||
+    (primary.prep_minutes == null && rendered.prep_minutes != null) ||
+    (primary.cook_minutes == null && rendered.cook_minutes != null);
+
+  const warnings = primary.warnings.filter((warning) => {
+    const lower = warning.toLowerCase();
+    if (ingredients.length && lower.startsWith("no ingredients")) return false;
+    if (instructions.length && lower.startsWith("no instructions")) return false;
+    return true;
+  });
+
+  if (filledFromRendered) {
+    warnings.push("Cook’s Kitchen filled missing details from the rendered recipe page. Review everything before saving.");
+  }
+  if (!ingredients.length) warnings.push("No ingredients were found. Add or paste them before saving.");
+  if (!instructions.length) warnings.push("No instructions were found. Add or paste them before saving.");
+
+  return {
+    ...primary,
+    name: primary.name !== "Imported recipe" ? primary.name : rendered.name,
+    description: primary.description || rendered.description,
+    image_url: primary.image_url || rendered.image_url,
+    prep_minutes: primary.prep_minutes ?? rendered.prep_minutes,
+    cook_minutes: primary.cook_minutes ?? rendered.cook_minutes,
+    servings: primary.servings ?? rendered.servings,
+    ingredients,
+    instructions,
+    tags: primary.tags.length ? primary.tags : rendered.tags,
+    dietary_tags: Array.from(new Set([...primary.dietary_tags, ...rendered.dietary_tags])),
+    structured: primary.structured || rendered.structured,
+    warnings: Array.from(new Set(warnings)),
+  };
+}
+
 export type { ImportedRecipe };
 
 export async function extractRecipeFromUrl(input: string): Promise<ImportedRecipe> {
   validateTarget(input.trim());
 
+  let direct: ImportedRecipe;
   try {
-    return await extractDirectRecipe(input);
+    direct = await extractDirectRecipe(input);
   } catch (error) {
     if (!shouldTryRenderedFallback(error)) throw error;
     return extractThroughReader(input);
+  }
+
+  if (!needsRenderedDetails(direct)) return direct;
+
+  try {
+    const rendered = await extractThroughReader(input);
+    return mergeRecipeDetails(direct, rendered);
+  } catch {
+    return direct;
   }
 }
