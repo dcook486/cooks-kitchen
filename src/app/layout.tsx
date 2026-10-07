@@ -29,12 +29,37 @@ const brandSans = Inter({ subsets: ["latin"], variable: "--font-brand-sans" });
 const brandSerif = Libre_Baskerville({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-brand-serif" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://cooks-kitchen.vercel.app"),
   title: "Cook's Kitchen",
-  description: "A shared meal planner for households to save recipes and decide what's for dinner together.",
+  description:
+    "A shared meal planner for couples and families. Save household recipes, plan dinners by the week, and keep everyone on the same page.",
   icons: {
     icon: "/cooks-kitchen-circle-v2.webp",
     shortcut: "/cooks-kitchen-circle-v2.webp",
     apple: "/cooks-kitchen-circle-v2.webp",
+  },
+  openGraph: {
+    title: "Cook's Kitchen",
+    description:
+      "A shared meal planner for couples and families. Save household recipes, plan dinners by the week, and keep everyone on the same page.",
+    url: "https://cooks-kitchen.vercel.app",
+    siteName: "Cook's Kitchen",
+    type: "website",
+    images: [
+      {
+        url: "/cooks-kitchen-circle-v2.webp",
+        width: 160,
+        height: 160,
+        alt: "Cook's Kitchen",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Cook's Kitchen",
+    description:
+      "A shared meal planner for couples and families. Save household recipes, plan dinners by the week, and keep everyone on the same page.",
+    images: ["/cooks-kitchen-circle-v2.webp"],
   },
 };
 
