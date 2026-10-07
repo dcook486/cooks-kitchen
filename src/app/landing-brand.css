@@ -50,7 +50,9 @@
 .landing-preview-toggle,
 .landing-day-card > span,
 .landing-step,
-.landing-trust-line {
+.landing-trust-line,
+.landing-icp,
+.landing-invite-nudge {
   font-family: var(--font-brand-sans), Inter, ui-sans-serif, system-ui, sans-serif;
 }
 

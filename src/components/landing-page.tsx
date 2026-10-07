@@ -15,11 +15,13 @@ export function LandingPage() {
           <p className="landing-lede">
             Keep the recipes your household loves, build a dinner plan for the week or month, and give everyone one shared place to see what&apos;s coming.
           </p>
+          <p className="landing-icp">For couples and families who share dinner duty.</p>
           <div className="landing-hero-actions">
             <a className="landing-button" href="/login?mode=signup&next=/">Start your kitchen</a>
             <a className="landing-secondary-button" href="/login?next=/">I already have an account</a>
           </div>
           <p className="landing-trust-line">Free to start <span aria-hidden="true">·</span> Made for shared households</p>
+          <p className="landing-invite-nudge">Invite your co-planner after you set up — one shared plan for the household.</p>
           <div className="landing-proof" aria-label="Cook's Kitchen highlights">
             <span>Shared household</span>
             <span>Week + month planning</span>
@@ -90,6 +92,7 @@ export function LandingPage() {
         <p className="eyebrow">YOUR KITCHEN, YOUR PLAN</p>
         <h2>Make dinner planning one less thing to think about.</h2>
         <p>Create your household, give your kitchen a name, and start with the meals you already love.</p>
+        <p className="landing-invite-nudge">Then invite the person you cook with.</p>
         <a className="landing-button" href="/login?mode=signup&next=/">Create your kitchen</a>
       </section>
 

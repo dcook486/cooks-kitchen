@@ -190,6 +190,29 @@
   max-width: 620px;
 }
 
+.landing-icp {
+  margin: -14px 0 28px;
+  max-width: 560px;
+  color: #8a9295;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.landing-invite-nudge {
+  margin: 10px 0 0;
+  max-width: 440px;
+  color: #8a9295;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.landing-cta p.landing-invite-nudge {
+  margin: -8px auto 26px;
+  max-width: 420px;
+  color: #b8c2c8;
+  font-size: 0.95rem;
+}
+
 .landing-proof {
   display: flex;
   gap: 8px;
