@@ -9,6 +9,7 @@ import { addRecipe, toggleFavorite } from "@/app/actions";
 import { deleteRecipeNow } from "@/app/recipes/actions";
 import { AccountMenu } from "@/components/account-menu";
 import { GettingStarted } from "@/components/getting-started";
+import { InstallHint } from "@/components/install-hint";
 import { Toast, ToastRegion, type ToastMessage } from "@/components/toast";
 import { WeeklyPlanner } from "@/components/weekly-planner";
 import { flushRecipeChange, useUndoable } from "@/lib/use-undoable";
@@ -195,6 +196,8 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
       </nav>
 
       <main>
+        <InstallHint />
+
         <GettingStarted
           recipeCount={activeRecipes.length}
           hasPlannedDinner={hasPlannedDinner}

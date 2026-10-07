@@ -151,7 +151,7 @@ button[aria-busy="true"] { cursor: progress; opacity: .72; }
   gap: 12px;
   padding: 10px 10px 10px 16px;
   border-radius: 14px;
-  background: #233028;
+  background: #2d4050; /* --text in app-brand.css */
   color: #fffdf8;
   box-shadow: 0 18px 44px rgba(31, 40, 34, .28);
   font-size: .88rem;
@@ -237,4 +237,52 @@ button[aria-busy="true"] { cursor: progress; opacity: .72; }
   .week-actions .copy-week-button { grid-column: 1 / -1; min-height: 44px; }
   /* Sit above the floating bottom nav. */
   .toast-region { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 84px); }
+}
+
+/* Install app hint (dashboard only) */
+.install-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(45, 64, 80, .05);
+}
+.install-hint-icon img { display: block; width: 32px; height: 32px; }
+.install-hint-copy { flex: 1; min-width: 0; margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.45; }
+.install-hint-copy strong { color: var(--text); }
+.install-hint-share { vertical-align: -3px; color: var(--text); }
+.install-hint-action { flex: none; min-height: 38px; padding: 7px 14px; font-size: .82rem; }
+.install-hint-close {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.install-hint-close:hover { background: var(--accent-2); color: var(--text); }
+
+/* Safe areas (notch / home indicator) when installed with viewport-fit=cover */
+@media (max-width: 660px) {
+  .app-shell {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+  .mobile-bottom-nav {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+  }
+  .meal-modal-body { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .install-hint { align-items: flex-start; }
+}
+@media (display-mode: standalone) and (max-width: 660px) {
+  .app-shell { padding-top: max(28px, calc(env(safe-area-inset-top) + 12px)); }
 }
