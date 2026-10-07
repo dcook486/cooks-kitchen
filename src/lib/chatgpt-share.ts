@@ -190,12 +190,27 @@ export function decodeChatGptShareHtml(html: string): DecodedShare {
   return { title: fallbackTitle, messages: [], method: "none" };
 }
 
-/** The most recent assistant reply that actually contains a recipe (handles "make it vegetarian" follow-ups). */
+/**
+ * The most recent assistant reply that actually contains a recipe (handles "make it vegetarian" follow-ups).
+ * When that reply has ingredients but no steps and a later reply carries the method ("Now the steps…"),
+ * the steps are appended so the recipe isn't split in half.
+ */
 export function pickRecipeMessage(messages: ChatMessage[]): ChatMessage | null {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i];
     if (message.role !== "assistant" || !textLooksLikeRecipe(message.text)) continue;
-    if (parseRecipeText(message.text).ingredients.length > 0) return message;
+    const parsed = parseRecipeText(message.text);
+    if (!parsed.ingredients.length) continue;
+    if (parsed.instructions.length) return message;
+
+    for (let j = i + 1; j < messages.length; j += 1) {
+      if (messages[j].role !== "assistant") continue;
+      const later = parseRecipeText(messages[j].text);
+      if (!later.instructions.length) continue;
+      const method = later.instructions.map((step, index) => `${index + 1}. ${step}`).join("\n");
+      return { role: "assistant", text: `${message.text}\n\n## Instructions\n\n${method}` };
+    }
+    return message;
   }
   return null;
 }

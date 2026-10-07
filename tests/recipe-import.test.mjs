@@ -268,6 +268,109 @@ test("strips the 'ChatGPT - ' title prefix", () => {
   assert.equal(chatgpt.cleanChatTitle("Lasagna"), "Lasagna");
 });
 
+// ---------- ChatGPT step formats ----------
+
+test("real ChatGPT share: '### 1. Prep' step headings with paragraphs and sub-bullets", () => {
+  const decoded = chatgpt.decodeChatGptShareHtml(fixture("chatgpt-share-ribeye.html"));
+  assert.equal(decoded.method, "turbo-stream");
+  assert.equal(decoded.title, "Grilled ribeye recipe");
+  const picked = chatgpt.pickRecipeMessage(decoded.messages);
+  assert.ok(picked);
+  const recipe = parser.parseRecipeText(picked.text);
+  assert.equal(recipe.name, "Grilled Ribeye");
+  assert.equal(recipe.ingredients.length, 7);
+  assert.equal(recipe.ingredients[0], "1 ribeye steak, ideally 1¼–1½ inches thick");
+  assert.equal(recipe.instructions.length, 4);
+  assert.match(recipe.instructions[0], /^Prep: Take the steak out of the fridge 30–45 minutes before grilling\. Pat it very dry\. Lightly coat with oil.*roughly: 1 tsp kosher salt; ¾ tsp coarse black pepper; ½ tsp garlic powder$/);
+  assert.match(recipe.instructions[1], /^Heat the grill: Preheat to high heat/);
+  assert.match(recipe.instructions[2], /^Grill: Put the ribeye directly over high heat\. For a 1½-inch steak: Grill 3–4 minutes without moving it\. Flip.*125–130°F.*indirect heat/);
+  assert.match(recipe.instructions[3], /^Butter \+ rest: Immediately put 1 tbsp butter on top\..*Rest the steak for 7–10 minutes before slicing\.$/);
+  const all = recipe.instructions.join(" ");
+  assert.doesNotMatch(all, /My pick|reverse-sear|If you want|side dishes/);
+});
+
+test("bold-only step sub-headings under an emoji 'How to Make It' heading", () => {
+  const recipe = parser.parseRecipeText(fixture("chatgpt-bold-steps.md"));
+  assert.equal(recipe.name, "Honey Garlic Chicken Thighs");
+  assert.equal(recipe.servings, 4);
+  assert.equal(recipe.prep_minutes, 10);
+  assert.equal(recipe.cook_minutes, 25);
+  assert.deepEqual(recipe.ingredients.filter((line) => line.endsWith(":")), ["For the sauce:"]);
+  assert.equal(recipe.ingredients.length, 8);
+  assert.deepEqual(recipe.instructions, [
+    "Sear the chicken: Pat the thighs dry and season with the salt and pepper. Heat the oil in a large skillet over medium-high heat and cook the thighs 5–6 minutes per side until golden.",
+    "Make the sauce: Whisk the honey, soy sauce and garlic together. Pour it over the chicken in the pan.",
+    "Simmer and glaze: Lower the heat and simmer 8–10 minutes, spooning the sauce over the chicken until it's sticky and the chicken reaches 175°F.",
+  ]);
+});
+
+test("several step sections ('Make the sauce', 'Cook the noodles') concatenate in order with their labels", () => {
+  const recipe = parser.parseRecipeText(fixture("chatgpt-multi-section.md"));
+  assert.equal(recipe.name, "Beef & Broccoli Noodles");
+  assert.deepEqual(recipe.ingredients.filter((line) => line.endsWith(":")), ["For the sauce:", "For the stir-fry:"]);
+  assert.equal(recipe.ingredients.length, 9);
+  assert.equal(recipe.cook_minutes, null, "'Cook the noodles' is a step heading, not a cook time");
+  assert.deepEqual(recipe.instructions, [
+    "Make the sauce: Whisk the soy sauce, brown sugar and cornstarch with 2 tbsp water.",
+    "Set aside.",
+    "Cook the noodles: Boil the noodles according to the package directions.",
+    "Drain and rinse with cold water.",
+    "Stir-fry and assemble: Heat the oil in a wok over high heat and sear the steak 2–3 minutes. Remove.",
+    "Stir-fry the broccoli 3 minutes, then return the steak.",
+    "Add the noodles and sauce and toss until glossy.",
+  ]);
+});
+
+test("'Step 1: …' headings with nested numbered and bulleted lists; pro tips skipped", () => {
+  const recipe = parser.parseRecipeText(fixture("chatgpt-step-headings.md"));
+  assert.equal(recipe.name, "Sheet-Pan Sausage & Veggies");
+  assert.equal(recipe.servings, 4);
+  assert.equal(recipe.total_minutes, 40);
+  assert.equal(recipe.ingredients.length, 5);
+  assert.deepEqual(recipe.instructions, [
+    "Prep the pan: Heat the oven to 425°F and line a sheet pan with foil.",
+    "Toss everything: In a big bowl, toss together: The potatoes and peppers; The olive oil and seasoning. Spread on the pan in a single layer.",
+    "Roast: Roast 20 minutes, add the sausage, and roast 15 minutes more. Stir once halfway. The potatoes should be fork-tender.",
+  ]);
+});
+
+test("nested bullets under numbered steps fold into that step", () => {
+  const recipe = parser.parseRecipeText("## Ingredients\n- 1 lb chicken\n- 2 tbsp soy sauce\n\n## Instructions\n1. Make the marinade:\n   - 2 tbsp soy sauce\n   - 1 tbsp honey\n2. Marinate the chicken 30 minutes.\n3. Grill until done:\n- 6 minutes per side\n- 165°F inside\n4. Rest 5 minutes.");
+  assert.deepEqual(recipe.instructions, [
+    "Make the marinade: 2 tbsp soy sauce; 1 tbsp honey",
+    "Marinate the chicken 30 minutes.",
+    "Grill until done: 6 minutes per side; 165°F inside",
+    "Rest 5 minutes.",
+  ]);
+});
+
+test("numbered steps with no steps heading after the ingredients are still found", () => {
+  for (const text of [
+    "**Ingredients**\n- 2 eggs\n- 1 cup milk\n\n1. Whisk everything.\n2. Cook in a buttered pan.",
+    "Ingredients:\n- 2 eggs\n- 1 cup milk\n\nHere is how to make it:\n1. Whisk everything.\n2. Cook in a buttered pan.\n\nEnjoy!",
+    "### Ingredients\n- 2 eggs\n- 1 cup milk\n\nOnce you have everything ready, follow these steps carefully for the best results.\n\n1. Whisk everything.\n2. Cook in a buttered pan.",
+  ]) {
+    const recipe = parser.parseRecipeText(text);
+    assert.deepEqual(recipe.ingredients, ["2 eggs", "1 cup milk"]);
+    assert.deepEqual(recipe.instructions, ["Whisk everything.", "Cook in a buttered pan."]);
+  }
+});
+
+test("a recipe split across two replies (ingredients, then 'Now the steps') is joined", () => {
+  const html = sharePage(encodeTurboStream({
+    linear_conversation: [
+      { message: message("user", "Pancakes?", 1) },
+      { message: message("assistant", "## Fluffy Pancakes\n\n### Ingredients\n- 1 cup flour\n- 1 egg\n- 1 cup milk\n\nWant the steps?", 2) },
+      { message: message("user", "Yes", 3) },
+      { message: message("assistant", "Here are the steps:\n\n1. Whisk everything together.\n2. Cook on a hot griddle until bubbly, then flip.", 4) },
+    ],
+  }));
+  const recipe = parser.parseRecipeText(chatgpt.pickRecipeMessage(chatgpt.decodeChatGptShareHtml(html).messages).text);
+  assert.equal(recipe.name, "Fluffy Pancakes");
+  assert.equal(recipe.ingredients.length, 3);
+  assert.deepEqual(recipe.instructions, ["Whisk everything together.", "Cook on a hot griddle until bubbly, then flip."]);
+});
+
 // ---------- web page fallbacks ----------
 
 test("reads schema.org microdata when a page has no JSON-LD", () => {
