@@ -610,7 +610,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
               {!isCurrentWeek && <Link className="secondary link-button" href="/">This week</Link>}
               <Link className="secondary link-button week-step" href={`/?week=${nextWeek}`} aria-label="Next week"><span className="label-long">Next </span>→</Link>
               <button className="secondary copy-week-button" type="button" onClick={copyLastWeek} disabled={copyingWeek} aria-busy={copyingWeek || undefined} title="Fill this week’s empty days with last week’s dinners">
-                {copyingWeek ? "Copying…" : "⧉ Copy last week"}
+                {copyingWeek ? "Copying…" : "Copy last week"}
               </button>
             </div>
           ) : (
