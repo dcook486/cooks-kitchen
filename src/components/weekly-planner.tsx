@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { FormEvent } from "react";
+import type { FormEvent, TouchEvent as ReactTouchEvent } from "react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { copyPreviousWeek, saveDinnerPlan } from "@/app/actions";
 import { quickAddRecipeAndPlan } from "@/app/quick-add-actions";
@@ -253,6 +253,10 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const pickerTriggerRef = useRef<HTMLElement | null>(null);
   const [quickAdding, startQuickAddTransition] = useTransition();
   const [copyingWeek, startCopyWeekTransition] = useTransition();
+  const [autoFocusSearch, setAutoFocusSearch] = useState(false);
+  const weekGridRef = useRef<HTMLDivElement>(null);
+  const servingPanelRef = useRef<HTMLDivElement>(null);
+  const sheetDragRef = useRef<{ startY: number; delta: number } | null>(null);
 
   const activeItem = pickerDay
     ? mealPlanItems.find((entry) => entry.meal_date === pickerDay.mealDate && entry.meal_type === "dinner")
@@ -288,6 +292,35 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   useEffect(() => {
     setDayDate(dayAnchor);
   }, [dayAnchor]);
+
+  // On phones, bring today's card into view when the current week first loads.
+  const scrolledToTodayRef = useRef(false);
+  useEffect(() => {
+    if (scrolledToTodayRef.current || mode !== "week" || !isCurrentWeek) return;
+    // Wait for late content above the planner (getting-started card, install tip) to settle first.
+    const timer = window.setTimeout(() => {
+      scrolledToTodayRef.current = true;
+      if (!window.matchMedia("(max-width: 660px)").matches) return;
+      if (window.location.hash || window.scrollY > 0) return;
+      const card = weekGridRef.current?.querySelector<HTMLElement>(".today-card");
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      // Only scroll when today's card is (partly) hidden behind the bottom nav or below the fold.
+      if (rect.bottom <= window.innerHeight - 96) return;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      card.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [mode, isCurrentWeek]);
+
+  // Keep the "How many servings?" step visible after picking a recipe on a small screen.
+  useEffect(() => {
+    if (!pendingRecipeId || !pickerDay) return;
+    const frame = window.requestAnimationFrame(() => {
+      servingPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pendingRecipeId, pickerDay]);
 
   useEffect(() => {
     if (!pickerDay) return;
@@ -373,7 +406,41 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     setQuickError("");
     setPendingRecipeId(existingItem?.recipe_id ?? null);
     setServingCount(String(existingItem?.planned_servings ?? existingRecipe?.servings ?? (existingRecipe ? 4 : "")));
+    // Jumping straight into search pops the keyboard over the sheet on phones, so only do it with a mouse.
+    setAutoFocusSearch(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
     setPickerDay({ day, mealDate });
+  }
+
+  function closePicker() {
+    if (quickAdding) return;
+    setPickerDay(null);
+  }
+
+  function onSheetTouchStart(event: ReactTouchEvent<HTMLDivElement>) {
+    if (event.touches.length !== 1 || quickAdding) return;
+    sheetDragRef.current = { startY: event.touches[0].clientY, delta: 0 };
+  }
+
+  function onSheetTouchMove(event: ReactTouchEvent<HTMLDivElement>) {
+    const drag = sheetDragRef.current;
+    const sheet = dialogRef.current;
+    if (!drag || !sheet) return;
+    drag.delta = Math.max(0, event.touches[0].clientY - drag.startY);
+    sheet.style.transition = "none";
+    sheet.style.transform = drag.delta ? `translateY(${drag.delta}px)` : "";
+  }
+
+  function onSheetTouchEnd() {
+    const drag = sheetDragRef.current;
+    const sheet = dialogRef.current;
+    sheetDragRef.current = null;
+    if (!drag || !sheet) return;
+    sheet.style.transition = "";
+    if (drag.delta > 90) {
+      closePicker();
+    } else {
+      sheet.style.transform = "";
+    }
   }
 
   function chooseDinner(selection: string, plannedServings: number | null = null) {
@@ -533,24 +600,24 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
 
           {mode === "day" ? (
             <div className="inline-actions week-actions" aria-label="Day navigation">
-              <Link className="secondary link-button" href={`/?planner=day&day=${addDays(dayDate, -1)}`}>← Previous</Link>
+              <Link className="secondary link-button week-step" href={`/?planner=day&day=${addDays(dayDate, -1)}`} aria-label="Previous day">←<span className="label-long"> Previous</span></Link>
               {dayDate !== today && <Link className="secondary link-button" href={`/?planner=day&day=${today}`}>Today</Link>}
-              <Link className="secondary link-button" href={`/?planner=day&day=${addDays(dayDate, 1)}`}>Next →</Link>
+              <Link className="secondary link-button week-step" href={`/?planner=day&day=${addDays(dayDate, 1)}`} aria-label="Next day"><span className="label-long">Next </span>→</Link>
             </div>
           ) : mode === "week" ? (
             <div className="inline-actions week-actions" aria-label="Week navigation">
-              <Link className="secondary link-button" href={`/?week=${previousWeek}`}>← Previous</Link>
+              <Link className="secondary link-button week-step" href={`/?week=${previousWeek}`} aria-label="Previous week">←<span className="label-long"> Previous</span></Link>
               {!isCurrentWeek && <Link className="secondary link-button" href="/">This week</Link>}
-              <Link className="secondary link-button" href={`/?week=${nextWeek}`}>Next →</Link>
+              <Link className="secondary link-button week-step" href={`/?week=${nextWeek}`} aria-label="Next week"><span className="label-long">Next </span>→</Link>
               <button className="secondary copy-week-button" type="button" onClick={copyLastWeek} disabled={copyingWeek} aria-busy={copyingWeek || undefined} title="Fill this week’s empty days with last week’s dinners">
                 {copyingWeek ? "Copying…" : "⧉ Copy last week"}
               </button>
             </div>
           ) : (
             <div className="inline-actions week-actions" aria-label="Month navigation">
-              <Link className="secondary link-button" href={`/?planner=month&month=${previousMonth.slice(0, 7)}`}>← Previous</Link>
+              <Link className="secondary link-button week-step" href={`/?planner=month&month=${previousMonth.slice(0, 7)}`} aria-label="Previous month">←<span className="label-long"> Previous</span></Link>
               {normalizedMonth !== currentMonth && <Link className="secondary link-button" href={`/?planner=month&month=${currentMonth.slice(0, 7)}`}>This month</Link>}
-              <Link className="secondary link-button" href={`/?planner=month&month=${nextMonth.slice(0, 7)}`}>Next →</Link>
+              <Link className="secondary link-button week-step" href={`/?planner=month&month=${nextMonth.slice(0, 7)}`} aria-label="Next month"><span className="label-long">Next </span>→</Link>
             </div>
           )}
         </div>
@@ -638,7 +705,8 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
           </section>
         )
       ) : mode === "week" ? (
-        <div className="week-grid">
+        <>
+        <div className="week-grid" ref={weekGridRef}>
           {dayNames.map((day, index) => {
             const mealDate = addDays(weekStart, index);
             const item = mealPlanItems.find((entry) => entry.meal_date === mealDate && entry.meal_type === "dinner");
@@ -652,7 +720,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
               <article className={`day-card ${hasPlan ? "planned-day" : ""} ${isToday ? "today-card" : ""}`} key={mealDate}>
                 <div className="day-card-heading">
                   <div>
-                    <div className="day-name">{day}</div>
+                    <div className="day-name"><span className="label-long">{day}</span><span className="label-short">{day.slice(0, 3)}</span></div>
                     <div className="day-date">{formatShortDate(mealDate)}</div>
                   </div>
                   {isToday && <span className="today-pill">Today</span>}
@@ -667,8 +735,11 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                 </div>
 
                 <div className="meal-picker-modern">
-                  <button className={`meal-picker-button ${hasPlan ? "has-selection" : ""}`} type="button" onClick={() => openPicker(day, mealDate)} aria-haspopup="dialog">
-                    <span className="meal-picker-button-copy"><strong>{hasPlan ? "Change dinner" : "Choose dinner"}</strong></span>
+                  <button className={`meal-picker-button ${hasPlan ? "has-selection" : ""}`} type="button" onClick={() => openPicker(day, mealDate)} aria-haspopup="dialog" aria-label={`${hasPlan ? "Change" : "Choose"} dinner for ${day}, ${formatShortDate(mealDate)}`}>
+                    <span className="meal-picker-button-copy">
+                      <strong className="label-long">{hasPlan ? "Change dinner" : "Choose dinner"}</strong>
+                      <strong className="label-short" aria-hidden="true">{hasPlan ? "Change" : "＋ Add"}</strong>
+                    </span>
                   </button>
                   {saving && <span className="auto-save-status saving">Saving…</span>}
                 </div>
@@ -676,6 +747,13 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
             );
           })}
         </div>
+        <nav className="week-bottom-pager" aria-label="Change week">
+          <Link className="secondary link-button" href={`/?week=${previousWeek}`}>← Previous week</Link>
+          {isCurrentWeek
+            ? <Link className="secondary link-button" href={`/?week=${nextWeek}`}>Next week →</Link>
+            : <Link className="secondary link-button" href="/">This week</Link>}
+        </nav>
+        </>
       ) : (
         <div className="month-calendar-shell">
           <div className="month-weekdays" aria-hidden="true">
@@ -724,14 +802,15 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
 
       {pickerDay && (
         <div className="meal-modal-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget && !quickAdding) setPickerDay(null);
+          if (event.target === event.currentTarget) closePicker();
         }}>
           <div className="meal-modal" role="dialog" aria-modal="true" aria-labelledby="meal-modal-title" ref={dialogRef} tabIndex={-1}>
-            <div className="meal-modal-header">
+            <div className="meal-modal-header" onTouchStart={onSheetTouchStart} onTouchMove={onSheetTouchMove} onTouchEnd={onSheetTouchEnd} onTouchCancel={onSheetTouchEnd}>
+              <span className="sheet-grabber" aria-hidden="true" />
               <div>
                 <p className="eyebrow">{pickerDay.day.toUpperCase()} · {formatShortDate(pickerDay.mealDate).toUpperCase()}</p>
                 <h3 id="meal-modal-title">What’s for dinner?</h3>
-                <p>Pick a recipe, choose a quick option, or add something new.</p>
+                <p className="meal-modal-subtitle">Pick a recipe, choose a quick option, or add something new.</p>
               </div>
               <button className="meal-modal-close" type="button" onClick={() => setPickerDay(null)} aria-label="Close dinner picker" disabled={quickAdding}>×</button>
             </div>
@@ -752,7 +831,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
               {plannerRecipes.length > 5 && (
                 <label className="meal-recipe-search">
                   <span className="meal-recipe-search-icon" aria-hidden="true">⌕</span>
-                  <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes…" aria-label="Search recipes" disabled={quickAdding} />
+                  <input autoFocus={autoFocusSearch} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes…" aria-label="Search recipes" disabled={quickAdding} />
                 </label>
               )}
 
@@ -784,7 +863,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                 const validServings = Number.isFinite(numericServings) && numericServings > 0;
 
                 return (
-                  <div className="meal-serving-panel">
+                  <div className="meal-serving-panel" ref={servingPanelRef}>
                     <div className="meal-serving-copy">
                       <strong>How many servings?</strong>
                       <span>{selectedRecipe.servings ? `Recipe originally makes ${selectedRecipe.servings}.` : "Choose how much you plan to make."}</span>
@@ -805,8 +884,8 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                 ) : (
                   <form className="meal-quick-add-form" onSubmit={submitQuickAdd}>
                     <div className="meal-quick-add-heading"><div><strong>Add & plan it</strong><span>Paste a recipe link to import the details, or just enter a name for now.</span></div></div>
-                    <label>Recipe URL <span>(optional)</span><input type="url" value={quickUrl} onChange={(event) => setQuickUrl(event.target.value)} placeholder="https://example.com/recipe" disabled={quickAdding} /></label>
-                    <label>Recipe name <span>(optional if URL is provided)</span><input type="text" value={quickName} onChange={(event) => setQuickName(event.target.value)} placeholder="Blackened ranch chicken" disabled={quickAdding} /></label>
+                    <label>Recipe URL <span>(optional)</span><input type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={quickUrl} onChange={(event) => setQuickUrl(event.target.value)} placeholder="https://example.com/recipe" disabled={quickAdding} /></label>
+                    <label>Recipe name <span>(optional if URL is provided)</span><input type="text" autoComplete="off" enterKeyHint="done" value={quickName} onChange={(event) => setQuickName(event.target.value)} placeholder="Blackened ranch chicken" disabled={quickAdding} /></label>
                     {quickError && <p className="meal-quick-add-error" role="alert">{quickError}</p>}
                     <div className="meal-quick-add-actions">
                       <button className="meal-quick-add-cancel" type="button" disabled={quickAdding} onClick={() => { setShowQuickAdd(false); setQuickError(""); setQuickName(""); setQuickUrl(""); }}>Cancel</button>
