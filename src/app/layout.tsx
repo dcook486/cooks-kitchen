@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Fraunces, Inter, Libre_Baskerville } from "next/font/google";
 import { AuthenticatedFeedbackFooter } from "@/components/authenticated-feedback-footer";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import "./globals.css";
 import "./live.css";
 import "./planner.css";
@@ -37,8 +38,15 @@ export const metadata: Metadata = {
   icons: {
     icon: "/cooks-kitchen-circle-v2.webp",
     shortcut: "/cooks-kitchen-circle-v2.webp",
-    apple: "/cooks-kitchen-circle-v2.webp",
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
+  applicationName: "Cook's Kitchen",
+  appleWebApp: {
+    capable: true,
+    title: "Cook's Kitchen",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
   openGraph: {
     title: "Cook's Kitchen",
     description:
@@ -64,12 +72,20 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f8f7f4",
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body className={`${sans.variable} ${serif.variable} ${brandSans.variable} ${brandSerif.variable}`}>
         {children}
         <AuthenticatedFeedbackFooter />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
