@@ -1,14 +1,16 @@
-// One-off generator for PWA / Apple touch icons from the vector brand mark.
+// One-off generator for PWA / Apple touch icons from the brand logo.
 // Usage: node scripts/generate-pwa-icons.mjs
 // Uses `sharp`, which ships with Next.js (no extra dependency is added to package.json).
 import sharp from "sharp";
 import { readFile } from "node:fs/promises";
 
 const BG = "#f8f7f4"; // --bg in app-brand.css
-const markSvg = await readFile(new URL("../public/cooks-kitchen-mark.svg", import.meta.url));
+// Source: the illustrated circle logo used for the favicon and social cards.
+// Swap in a higher-resolution export of the same logo here for sharper icons.
+const logo = await readFile(new URL("../public/cooks-kitchen-circle-v2.webp", import.meta.url));
 
 async function renderMark(size) {
-  return sharp(markSvg, { density: Math.ceil((size / 180) * 72 * 2) }).resize(size, size).png().toBuffer();
+  return sharp(logo).resize(size, size, { kernel: "lanczos3" }).png().toBuffer();
 }
 
 async function iconOnBackground(canvas, markScale, out) {
