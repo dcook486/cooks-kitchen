@@ -214,7 +214,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
             <div className="section-heading">
               <div><p className="eyebrow">YOUR SHARED RECIPE BANK</p><h2>Recipes</h2></div>
               <div className="inline-actions recipe-actions">
-                <Link className="secondary link-button" href="/recipes/import">Import from URL</Link>
+                <Link className="secondary link-button" href="/recipes/import">Import or paste</Link>
                 <button className="primary" type="button" onClick={() => { setRecipeNotice(null); setShowAddRecipe((value) => !value); }} aria-expanded={showAddRecipe}>{showAddRecipe ? "Close form" : "+ Add recipe"}</button>
               </div>
             </div>
@@ -294,7 +294,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
                 ) : (
                   <div className="inline-actions empty-state-actions">
                     <button className="primary" type="button" onClick={openAddRecipe}>Add your first recipe</button>
-                    <Link className="secondary link-button" href="/recipes/import">Import from a link</Link>
+                    <Link className="secondary link-button" href="/recipes/import">Import or paste a recipe</Link>
                   </div>
                 )}
               </div>

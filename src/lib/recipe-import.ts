@@ -102,16 +102,32 @@ function safeRecipeUrl(input: string) {
   return url;
 }
 
-async function fetchRecipeHtml(input: string) {
+const IMPORTER_UA = "Cook's Kitchen Recipe Importer/1.0 (+https://cooks-kitchen.vercel.app)";
+// Some recipe sites bounce the first request from unfamiliar clients; the retry looks like a browser but still names us.
+const RETRY_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36 CooksKitchenImporter/1.0";
+
+function requestPage(url: URL, userAgent: string, timeoutMs: number) {
+  return fetch(url, {
+    redirect: "manual",
+    headers: { Accept: "text/html,application/xhtml+xml", "Accept-Language": "en-US,en;q=0.9", "User-Agent": userAgent },
+    signal: AbortSignal.timeout(timeoutMs),
+    cache: "no-store",
+  });
+}
+
+/** Fetches an HTML page with SSRF checks, manual redirects, a size cap and one retry on 403/429. */
+export async function fetchPageHtml(input: string, options: { timeoutMs?: number } = {}) {
+  const timeoutMs = options.timeoutMs ?? 12_000;
   let current = safeRecipeUrl(input);
+  let retried = false;
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
-    const response = await fetch(current, {
-      redirect: "manual",
-      headers: { Accept: "text/html,application/xhtml+xml", "User-Agent": "Cook's Kitchen Recipe Importer/1.0" },
-      signal: AbortSignal.timeout(12_000),
-      cache: "no-store",
-    });
+    let response = await requestPage(current, IMPORTER_UA, timeoutMs);
+    if ((response.status === 403 || response.status === 429) && !retried) {
+      retried = true;
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      response = await requestPage(current, RETRY_UA, timeoutMs);
+    }
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
@@ -341,16 +357,63 @@ function fromPageBasics(html: string, sourceUrl: string): ImportedRecipe {
   };
 }
 
+function attributeValue(tag: string, name: string) {
+  return metaAttributes(tag)[name] ?? "";
+}
+
+/** schema.org Recipe microdata (itemprop attributes), for older sites without JSON-LD. */
+export function extractRecipeMicrodata(html: string): JsonRecord | null {
+  const scopeStart = html.search(/itemtype\s*=\s*["']https?:\/\/schema\.org\/Recipe["']/i);
+  if (scopeStart < 0) return null;
+  const scope = html.slice(Math.max(0, html.lastIndexOf("<", scopeStart)), scopeStart + 400_000);
+  const values = new Map<string, string[]>();
+  const pattern = /<([a-z][a-z0-9]*)\b([^>]*\bitemprop\s*=\s*["']([^"']+)["'][^>]*)>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(scope))) {
+    const [tag, element, , props] = match;
+    let value = attributeValue(tag, "content") || attributeValue(tag, "datetime");
+    if (!value && /^(?:img|link)$/i.test(element)) value = attributeValue(tag, "src") || attributeValue(tag, "href");
+    if (!value && !/^(?:meta|link|img)$/i.test(element)) {
+      const close = new RegExp(`</${element}\\s*>`, "i");
+      const rest = scope.slice(match.index + tag.length);
+      const end = rest.search(close);
+      value = end >= 0 ? plainText(rest.slice(0, end)) : "";
+    }
+    if (!value) continue;
+    for (const prop of props.split(/\s+/)) values.set(prop, [...(values.get(prop) ?? []), value]);
+  }
+
+  const ingredients = values.get("recipeIngredient") ?? values.get("ingredients") ?? [];
+  const instructions = values.get("recipeInstructions") ?? [];
+  if (!ingredients.length && !instructions.length) return null;
+  const first = (key: string) => values.get(key)?.[0] ?? null;
+  return {
+    "@type": "Recipe",
+    name: first("name"),
+    description: first("description"),
+    image: first("image"),
+    prepTime: first("prepTime"),
+    cookTime: first("cookTime"),
+    totalTime: first("totalTime"),
+    recipeYield: first("recipeYield"),
+    recipeIngredient: ingredients,
+    recipeInstructions: instructions,
+    recipeCategory: values.get("recipeCategory") ?? [],
+    recipeCuisine: values.get("recipeCuisine") ?? [],
+  };
+}
+
 export async function extractRecipeFromUrl(input: string): Promise<ImportedRecipe> {
   if (!input.trim()) throw new Error("Paste a recipe URL first.");
   let fetched: { html: string; finalUrl: string };
   try {
-    fetched = await fetchRecipeHtml(input.trim());
+    fetched = await fetchPageHtml(input.trim());
   } catch (error) {
     if (error instanceof Error && error.name === "TimeoutError") throw new Error("That recipe website took too long to respond.");
     throw error;
   }
 
-  const recipe = extractRecipeJsonLd(fetched.html);
+  const recipe = extractRecipeJsonLd(fetched.html) ?? extractRecipeMicrodata(fetched.html);
   return recipe ? fromStructuredData(recipe, fetched.finalUrl) : fromPageBasics(fetched.html, fetched.finalUrl);
 }

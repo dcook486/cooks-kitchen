@@ -26,6 +26,7 @@ import "./mobile-qa.css";
 import "./feedback.css";
 import "./usability.css";
 import "./mobile-polish.css";
+import "./smart-import.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });

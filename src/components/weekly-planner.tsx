@@ -5,6 +5,8 @@ import type { FormEvent, TouchEvent as ReactTouchEvent } from "react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { copyPreviousWeek, saveDinnerPlan } from "@/app/actions";
 import { quickAddRecipeAndPlan } from "@/app/quick-add-actions";
+import { PasteButton } from "@/components/paste-button";
+import { CHATGPT_PRIVATE_MESSAGE, detectImportInput, MAX_IMPORT_INPUT_CHARS, type ImportInput } from "@/lib/import-input";
 import { scaleIngredientLines } from "@/lib/ingredient-scaling";
 
 type PlannerMode = "day" | "week" | "month";
@@ -62,6 +64,18 @@ const quickChoices = [
   { value: "eating_out", icon: "🍽️", title: "Eating out", description: "No cooking tonight" },
   { value: "skipped", icon: "—", title: "Leave it open", description: "No dinner plan for this night" },
 ];
+
+function quickHintFor(input: ImportInput): { tone: "info" | "warn"; text: string } {
+  if (input.kind === "url") {
+    if (input.share === "chatgpt-private") return { tone: "warn", text: CHATGPT_PRIVATE_MESSAGE };
+    if (input.share === "claude-share" || input.share === "gemini-share") return { tone: "warn", text: "Claude and Gemini links can’t be read yet. Copy the recipe text and paste it instead." };
+    if (input.share === "social") return { tone: "warn", text: "Social posts can’t be read. Copy the caption with the recipe and paste it instead." };
+    return { tone: "info", text: input.share === "chatgpt-share" ? "ChatGPT link: we’ll read the recipe from the chat." : "Link: we’ll import the recipe details." };
+  }
+  if (input.kind === "text") return { tone: "info", text: "Recipe text: we’ll sort out the ingredients and steps." };
+  if (input.kind === "name") return { tone: "info", text: "We’ll add it by name. You can fill in details later." };
+  return { tone: "info", text: "" };
+}
 
 function dateFromIso(value: string) {
   return new Date(`${value}T12:00:00Z`);
@@ -244,8 +258,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const [servingCount, setServingCount] = useState("");
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [quickName, setQuickName] = useState("");
-  const [quickUrl, setQuickUrl] = useState("");
+  const [quickInput, setQuickInput] = useState("");
   const [quickError, setQuickError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -278,6 +291,9 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const dayTotalMinutes = dayRecipe ? (dayRecipe.prep_minutes ?? 0) + (dayRecipe.cook_minutes ?? 0) : 0;
   const dayTags = dayRecipe ? [...(dayRecipe.tags ?? []), ...(dayRecipe.dietary_tags ?? [])] : [];
   const daySaving = savingDate === dayDate && isPending;
+
+  const quickDetected = useMemo(() => detectImportInput(quickInput), [quickInput]);
+  const quickHint = quickHintFor(quickDetected);
 
   const filteredRecipes = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -401,8 +417,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     setSaveError("");
     setQuery("");
     setShowQuickAdd(false);
-    setQuickName("");
-    setQuickUrl("");
+    setQuickInput("");
     setQuickError("");
     setPendingRecipeId(existingItem?.recipe_id ?? null);
     setServingCount(String(existingItem?.planned_servings ?? existingRecipe?.servings ?? (existingRecipe ? 4 : "")));
@@ -492,10 +507,9 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     event.preventDefault();
     if (!pickerDay || quickAdding) return;
 
-    const name = quickName.trim();
-    const sourceUrl = quickUrl.trim();
-    if (!name && !sourceUrl) {
-      setQuickError("Enter a recipe name or paste a recipe URL.");
+    const input = quickInput.trim();
+    if (!input) {
+      setQuickError("Type a recipe name, or paste a link or the recipe text.");
       return;
     }
 
@@ -504,8 +518,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     formData.set("household_id", householdId);
     formData.set("week_start", mondayFor(mealDate));
     formData.set("meal_date", mealDate);
-    formData.set("name", name);
-    formData.set("source_url", sourceUrl);
+    formData.set("input", input);
     setQuickError("");
 
     startQuickAddTransition(async () => {
@@ -528,8 +541,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
       setOptimisticSelections((current) => ({ ...current, [mealDate]: `recipe:${result.recipe.id}` }));
       setPickerDay(null);
       setShowQuickAdd(false);
-      setQuickName("");
-      setQuickUrl("");
+      setQuickInput("");
       setQuickError("");
     });
   }
@@ -883,13 +895,34 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
                   <button className="meal-quick-add-trigger" type="button" onClick={() => { setShowQuickAdd(true); setQuickError(""); }}><span aria-hidden="true">＋</span> Add a new recipe</button>
                 ) : (
                   <form className="meal-quick-add-form" onSubmit={submitQuickAdd}>
-                    <div className="meal-quick-add-heading"><div><strong>Add & plan it</strong><span>Paste a recipe link to import the details, or just enter a name for now.</span></div></div>
-                    <label>Recipe URL <span>(optional)</span><input type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={quickUrl} onChange={(event) => setQuickUrl(event.target.value)} placeholder="https://example.com/recipe" disabled={quickAdding} /></label>
-                    <label>Recipe name <span>(optional if URL is provided)</span><input type="text" autoComplete="off" enterKeyHint="done" value={quickName} onChange={(event) => setQuickName(event.target.value)} placeholder="Blackened ranch chicken" disabled={quickAdding} /></label>
+                    <div className="meal-quick-add-heading"><div><strong>Add & plan it</strong><span>Type a name, or paste a recipe link (ChatGPT share links work too) or the recipe text.</span></div></div>
+                    <label>Recipe name, link, or text
+                      <textarea
+                        className="smart-import-input compact"
+                        rows={2}
+                        value={quickInput}
+                        maxLength={MAX_IMPORT_INPUT_CHARS}
+                        onChange={(event) => setQuickInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && !event.shiftKey && !quickInput.includes("\n") && quickDetected.kind !== "text") {
+                            event.preventDefault();
+                            event.currentTarget.form?.requestSubmit();
+                          }
+                        }}
+                        placeholder="Blackened ranch chicken, or paste a link"
+                        autoComplete="off"
+                        enterKeyHint="done"
+                        disabled={quickAdding}
+                      />
+                    </label>
+                    <div className="meal-quick-add-tools">
+                      <PasteButton label="Paste" disabled={quickAdding} onText={(text) => { setQuickInput(text); setQuickError(""); }} />
+                      <span className={`smart-import-hint ${quickHint.tone}`}>{quickHint.text}</span>
+                    </div>
                     {quickError && <p className="meal-quick-add-error" role="alert">{quickError}</p>}
                     <div className="meal-quick-add-actions">
-                      <button className="meal-quick-add-cancel" type="button" disabled={quickAdding} onClick={() => { setShowQuickAdd(false); setQuickError(""); setQuickName(""); setQuickUrl(""); }}>Cancel</button>
-                      <button className="meal-quick-add-submit" type="submit" disabled={quickAdding}>{quickAdding ? (quickUrl.trim() ? "Importing…" : "Adding…") : "Add & plan dinner"}</button>
+                      <button className="meal-quick-add-cancel" type="button" disabled={quickAdding} onClick={() => { setShowQuickAdd(false); setQuickError(""); setQuickInput(""); }}>Cancel</button>
+                      <button className="meal-quick-add-submit" type="submit" disabled={quickAdding}>{quickAdding ? (quickDetected.kind === "name" ? "Adding…" : "Reading recipe…") : quickDetected.kind === "url" ? "Import & plan dinner" : quickDetected.kind === "text" ? "Read & plan dinner" : "Add & plan dinner"}</button>
                     </div>
                   </form>
                 )}
