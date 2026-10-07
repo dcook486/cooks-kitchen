@@ -3,11 +3,15 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { addRecipe, toggleFavorite } from "@/app/actions";
+import { deleteRecipeNow } from "@/app/recipes/actions";
 import { AccountMenu } from "@/components/account-menu";
 import { GettingStarted } from "@/components/getting-started";
+import { Toast, ToastRegion, type ToastMessage } from "@/components/toast";
 import { WeeklyPlanner } from "@/components/weekly-planner";
+import { flushRecipeChange, useUndoable } from "@/lib/use-undoable";
 
 type View = "week" | "recipes";
 type PlannerMode = "day" | "week" | "month";
@@ -33,6 +37,7 @@ type Props = {
   initialView: View;
   memberCount: number;
   justOnboarded: boolean;
+  deletedRecipeId: string | null;
 };
 
 const views: Array<{ id: View; label: string; mobileLabel: string; icon: string }> = [
@@ -56,19 +61,52 @@ function FavoriteToggleButton({ recipe }: { recipe: Recipe }) {
   );
 }
 
-export function KitchenDashboard({ household, recipes, displayName, mealPlanItems, weekStart, currentWeekStart, dayAnchor, monthAnchor, initialPlannerMode, initialView, memberCount, justOnboarded }: Props) {
+export function KitchenDashboard({ household, recipes, displayName, mealPlanItems, weekStart, currentWeekStart, dayAnchor, monthAnchor, initialPlannerMode, initialView, memberCount, justOnboarded, deletedRecipeId }: Props) {
+  const router = useRouter();
   const [view, setView] = useState<View>(initialView);
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [query, setQuery] = useState("");
   const [showAddRecipe, setShowAddRecipe] = useState(false);
   const [recipeNotice, setRecipeNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
   const [savingRecipe, startSavingRecipe] = useTransition();
   const recipeNameRef = useRef<HTMLInputElement>(null);
+  const [deletedOnArrival] = useState(() => {
+    // A recipe deleted from its detail page arrives as ?deleted=<id>: hide it and offer Undo before deleting for real.
+    const recipe = deletedRecipeId ? recipes.find((entry) => entry.id === deletedRecipeId) : undefined;
+    return recipe ? { id: recipe.id, name: recipe.name } : null;
+  });
+  const pendingDelete = useUndoable<{ id: string; name: string }>({
+    initial: deletedOnArrival,
+    commit: async (item) => {
+      const result = await deleteRecipeNow(item.id);
+      if (!result.ok) {
+        notify(`Couldn’t delete “${item.name}”, so it’s back in your recipe bank.`, "error");
+        router.refresh();
+      }
+      return result.ok;
+    },
+    flush: (item) => flushRecipeChange("delete_recipe", item.id),
+  });
+  const isRecipeHidden = pendingDelete.isHidden;
+  const activeRecipes = useMemo(() => recipes.filter((recipe) => !isRecipeHidden(recipe.id)), [isRecipeHidden, recipes]);
   const hasPlannedDinner = mealPlanItems.some((item) => item.meal_type === "dinner" && item.status !== "skipped");
 
   useEffect(() => {
     if (showAddRecipe) recipeNameRef.current?.focus();
   }, [showAddRecipe]);
+
+  function notify(text: string, tone: ToastMessage["tone"] = "success") {
+    setToast({ id: `${Date.now()}-${Math.random()}`, text, tone });
+  }
+
+  // Drop ?deleted= so a refresh doesn't replay it (the pending delete itself lives in state).
+  useEffect(() => {
+    if (!deletedRecipeId) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("deleted");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, [deletedRecipeId]);
 
   useEffect(() => {
     if (!justOnboarded) return;
@@ -89,7 +127,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
       try {
         await addRecipe(formData);
         setShowAddRecipe(false);
-        setRecipeNotice({ kind: "success", text: `Saved “${name}” to your recipe bank. It’s ready to plan.` });
+        notify(`Saved “${name}” to your recipe bank. It’s ready to plan.`);
       } catch {
         setRecipeNotice({ kind: "error", text: "We couldn’t save that recipe. Check your connection and try again — your entries are still here." });
       }
@@ -109,12 +147,12 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
 
   const visibleRecipes = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return recipes.filter((recipe) => {
+    return activeRecipes.filter((recipe) => {
       if (favoriteOnly && !recipe.is_favorite) return false;
       if (!needle) return true;
       return [recipe.name, recipe.description ?? "", ...recipe.tags, ...recipe.dietary_tags].join(" ").toLowerCase().includes(needle);
     });
-  }, [favoriteOnly, query, recipes]);
+  }, [favoriteOnly, query, activeRecipes]);
 
   function selectView(nextView: View) {
     setView(nextView);
@@ -125,8 +163,12 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  const hasCoPlanner = memberCount > 1;
+  const inviteLabel = hasCoPlanner ? `Household · ${memberCount}` : "Invite co-planner";
+  const inviteTitle = hasCoPlanner ? "Manage who shares this kitchen" : "Invite a partner or family member to plan with you";
+
   function tabLabel(tab: View) {
-    if (tab === "recipes") return `Recipes · ${recipes.length}`;
+    if (tab === "recipes") return `Recipes · ${activeRecipes.length}`;
     return "The Plan";
   }
 
@@ -147,11 +189,14 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
             {tabLabel(tab.id)}
           </button>
         ))}
+        <Link className={`tab-invite-link ${hasCoPlanner ? "has-members" : ""}`} href="/household" title={inviteTitle}>
+          <span aria-hidden="true">{hasCoPlanner ? "👥" : "＋"}</span> {inviteLabel}
+        </Link>
       </nav>
 
       <main>
         <GettingStarted
-          recipeCount={recipes.length}
+          recipeCount={activeRecipes.length}
           hasPlannedDinner={hasPlannedDinner}
           memberCount={memberCount}
           justOnboarded={justOnboarded}
@@ -159,7 +204,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
           onOpenPlan={() => selectView("week")}
         />
 
-        {view === "week" && <WeeklyPlanner householdId={household.id} timeZone={household.timezone} recipes={recipes} mealPlanItems={mealPlanItems} weekStart={weekStart} currentWeekStart={currentWeekStart} dayAnchor={dayAnchor} monthAnchor={monthAnchor} initialMode={initialPlannerMode} />}
+        {view === "week" && <WeeklyPlanner householdId={household.id} timeZone={household.timezone} recipes={activeRecipes} mealPlanItems={mealPlanItems} weekStart={weekStart} currentWeekStart={currentWeekStart} dayAnchor={dayAnchor} monthAnchor={monthAnchor} initialMode={initialPlannerMode} onNotify={notify} />}
 
         {view === "recipes" && (
           <section>
@@ -239,9 +284,9 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
             ) : (
               <div className="empty-state">
                 <div aria-hidden="true">🥘</div>
-                <h3>{recipes.length ? "No recipes match" : "Your recipe bank is ready"}</h3>
-                <p>{recipes.length ? (favoriteOnly && !query.trim() ? "None of your recipes are favorites yet. Tap the ☆ on a recipe to add it." : "Try a different search or show all recipes.") : "Add the meals you already love — type a name or paste a link. They’ll appear immediately in your planner."}</p>
-                {recipes.length ? (
+                <h3>{activeRecipes.length ? "No recipes match" : "Your recipe bank is ready"}</h3>
+                <p>{activeRecipes.length ? (favoriteOnly && !query.trim() ? "None of your recipes are favorites yet. Tap the ☆ on a recipe to add it." : "Try a different search or show all recipes.") : "Add the meals you already love — type a name or paste a link. They’ll appear immediately in your planner."}</p>
+                {activeRecipes.length ? (
                   <button className="secondary" type="button" onClick={clearRecipeFilters}>Show all recipes</button>
                 ) : (
                   <div className="inline-actions empty-state-actions">
@@ -262,7 +307,29 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
             <span>{tab.mobileLabel}</span>
           </button>
         ))}
+        <Link className="mobile-nav-link" href="/household" title={inviteTitle}>
+          <span className="mobile-nav-icon" aria-hidden="true">{hasCoPlanner ? "👥" : "＋"}</span>
+          <span>{hasCoPlanner ? "Household" : "Invite"}</span>
+        </Link>
       </nav>
+
+      <ToastRegion>
+        {pendingDelete.pending && (
+          <Toast
+            key={`undo-${pendingDelete.pending.id}`}
+            message={`Deleted “${pendingDelete.pending.name}”`}
+            tone="info"
+            duration={7000}
+            actionLabel="Undo"
+            onAction={() => {
+              pendingDelete.undo();
+              notify("Recipe restored.");
+            }}
+            onDismiss={pendingDelete.expire}
+          />
+        )}
+        {toast && <Toast key={toast.id} message={toast.text} tone={toast.tone} onDismiss={() => setToast(null)} />}
+      </ToastRegion>
     </div>
   );
 }

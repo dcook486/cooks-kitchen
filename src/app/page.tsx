@@ -14,6 +14,7 @@ type HomeProps = {
     joined?: string;
     share_error?: string;
     onboarding?: string;
+    deleted?: string;
   }>;
 };
 
@@ -163,6 +164,7 @@ export default async function Home({ searchParams }: HomeProps) {
       initialView={initialView}
       memberCount={memberCount ?? 1}
       justOnboarded={params.onboarding === "complete"}
+      deletedRecipeId={typeof params.deleted === "string" && /^[0-9a-f-]{36}$/i.test(params.deleted) ? params.deleted : null}
     />
   );
 }
