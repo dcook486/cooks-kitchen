@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { addRecipe, logout, saveDinnerPlan } from "@/app/actions";
 import { OnboardingHouseholdForm } from "@/components/onboarding-household-form";
+import { SubmitButton } from "@/components/submit-button";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = { searchParams: Promise<{ error?: string; step?: string }> };
@@ -101,7 +102,7 @@ export default async function OnboardingPage({ searchParams }: Props) {
             {params.error && <div className="form-alert error">{params.error}</div>}
             <OnboardingHouseholdForm defaultHouseholdName={defaults.householdName} defaultKitchenName={defaults.kitchenName} />
           </div>
-          <form action={logout} className="onboarding-signout"><button className="text-button">Sign out</button></form>
+          <form action={logout} className="onboarding-signout"><button className="text-button" type="submit">Sign out</button></form>
         </section>
       </main>
     );
@@ -177,7 +178,7 @@ export default async function OnboardingPage({ searchParams }: Props) {
                   Recipe name
                   <div className="onboarding-inline-input">
                     <input name="name" placeholder="Taco bowls" required autoComplete="off" />
-                    <button className="primary" type="submit">Add</button>
+                    <SubmitButton className="primary" pendingLabel="Adding…">Add</SubmitButton>
                   </div>
                 </label>
               </form>
@@ -240,7 +241,7 @@ export default async function OnboardingPage({ searchParams }: Props) {
                 <p>After this, use Day, Week, or Month view to add the rest whenever you&apos;re ready.</p>
               </div>
             </div>
-            <button className="primary wide onboarding-primary" type="submit">Plan dinner &amp; open my kitchen →</button>
+            <SubmitButton className="primary wide onboarding-primary" pendingLabel="Opening your kitchen…">Plan dinner &amp; open my kitchen →</SubmitButton>
           </form>
 
           <Link className="onboarding-skip-link inside" href="/">Skip this and open my kitchen</Link>

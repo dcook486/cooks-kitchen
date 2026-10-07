@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { DeleteAccountForm } from "@/components/delete-account-form";
+import { SubmitButton } from "@/components/submit-button";
 import { createClient } from "@/lib/supabase/server";
 import { updateProfile } from "./actions";
 
@@ -109,7 +110,7 @@ export default async function ProfilePage({ searchParams }: Props) {
                 Display name
                 <input name="display_name" defaultValue={String(displayName)} maxLength={60} autoComplete="name" required />
               </label>
-              <button className="primary" type="submit">Save changes</button>
+              <SubmitButton className="primary" pendingLabel="Saving…">Save changes</SubmitButton>
             </form>
           </section>
 

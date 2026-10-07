@@ -1,4 +1,5 @@
 import { updateHouseholdIdentity } from "@/app/household/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 type Props = {
   householdId: string;
@@ -61,7 +62,7 @@ export function HouseholdIdentitySettings({
 
           <div className="identity-settings-footer">
             <p>These settings are shared with everyone in the household.</p>
-            <button className="primary" type="submit">Save kitchen settings</button>
+            <SubmitButton className="primary" pendingLabel="Saving…">Save kitchen settings</SubmitButton>
           </div>
         </form>
       ) : (

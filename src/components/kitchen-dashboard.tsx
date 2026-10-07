@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import { useFormStatus } from "react-dom";
 import { addRecipe, toggleFavorite } from "@/app/actions";
 import { AccountMenu } from "@/components/account-menu";
+import { GettingStarted } from "@/components/getting-started";
 import { WeeklyPlanner } from "@/components/weekly-planner";
 
 type View = "week" | "recipes";
@@ -27,6 +31,8 @@ type Props = {
   monthAnchor: string;
   initialPlannerMode: PlannerMode;
   initialView: View;
+  memberCount: number;
+  justOnboarded: boolean;
 };
 
 const views: Array<{ id: View; label: string; mobileLabel: string; icon: string }> = [
@@ -40,11 +46,66 @@ function totalMinutes(recipe: Recipe) {
 }
 function ingredientCount(recipe: Recipe) { return Array.isArray(recipe.ingredients) ? recipe.ingredients.length : 0; }
 
-export function KitchenDashboard({ household, recipes, displayName, mealPlanItems, weekStart, currentWeekStart, dayAnchor, monthAnchor, initialPlannerMode, initialView }: Props) {
+function FavoriteToggleButton({ recipe }: { recipe: Recipe }) {
+  const { pending } = useFormStatus();
+  const label = recipe.is_favorite ? `Remove ${recipe.name} from favorites` : `Add ${recipe.name} to favorites`;
+  return (
+    <button className={`icon-button${pending ? " is-pending" : ""}`} type="submit" title={recipe.is_favorite ? "Remove favorite" : "Add favorite"} aria-label={label} aria-busy={pending || undefined} disabled={pending}>
+      {pending ? "…" : recipe.is_favorite ? "⭐" : "☆"}
+    </button>
+  );
+}
+
+export function KitchenDashboard({ household, recipes, displayName, mealPlanItems, weekStart, currentWeekStart, dayAnchor, monthAnchor, initialPlannerMode, initialView, memberCount, justOnboarded }: Props) {
   const [view, setView] = useState<View>(initialView);
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [query, setQuery] = useState("");
   const [showAddRecipe, setShowAddRecipe] = useState(false);
+  const [recipeNotice, setRecipeNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [savingRecipe, startSavingRecipe] = useTransition();
+  const recipeNameRef = useRef<HTMLInputElement>(null);
+  const hasPlannedDinner = mealPlanItems.some((item) => item.meal_type === "dinner" && item.status !== "skipped");
+
+  useEffect(() => {
+    if (showAddRecipe) recipeNameRef.current?.focus();
+  }, [showAddRecipe]);
+
+  useEffect(() => {
+    if (!justOnboarded) return;
+    // Drop ?onboarding=complete so a refresh doesn't replay the welcome state.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("onboarding");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, [justOnboarded]);
+
+  function submitNewRecipe(event: FormEvent<HTMLFormElement>) {
+    // Handled manually (not via form action) so a failed save keeps what the user typed.
+    event.preventDefault();
+    if (savingRecipe) return;
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") ?? "").trim();
+    setRecipeNotice(null);
+    startSavingRecipe(async () => {
+      try {
+        await addRecipe(formData);
+        setShowAddRecipe(false);
+        setRecipeNotice({ kind: "success", text: `Saved “${name}” to your recipe bank. It’s ready to plan.` });
+      } catch {
+        setRecipeNotice({ kind: "error", text: "We couldn’t save that recipe. Check your connection and try again — your entries are still here." });
+      }
+    });
+  }
+
+  function openAddRecipe() {
+    selectView("recipes");
+    setRecipeNotice(null);
+    setShowAddRecipe(true);
+  }
+
+  function clearRecipeFilters() {
+    setQuery("");
+    setFavoriteOnly(false);
+  }
 
   const visibleRecipes = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -82,13 +143,22 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
 
       <nav className="tabs desktop-tabs" aria-label="App sections">
         {views.map((tab) => (
-          <button key={tab.id} className={`tab ${view === tab.id ? "active" : ""}`} onClick={() => selectView(tab.id)} aria-current={view === tab.id ? "page" : undefined}>
+          <button key={tab.id} type="button" className={`tab ${view === tab.id ? "active" : ""}`} onClick={() => selectView(tab.id)} aria-current={view === tab.id ? "page" : undefined}>
             {tabLabel(tab.id)}
           </button>
         ))}
       </nav>
 
       <main>
+        <GettingStarted
+          recipeCount={recipes.length}
+          hasPlannedDinner={hasPlannedDinner}
+          memberCount={memberCount}
+          justOnboarded={justOnboarded}
+          onAddRecipe={openAddRecipe}
+          onOpenPlan={() => selectView("week")}
+        />
+
         {view === "week" && <WeeklyPlanner householdId={household.id} timeZone={household.timezone} recipes={recipes} mealPlanItems={mealPlanItems} weekStart={weekStart} currentWeekStart={currentWeekStart} dayAnchor={dayAnchor} monthAnchor={monthAnchor} initialMode={initialPlannerMode} />}
 
         {view === "recipes" && (
@@ -96,17 +166,24 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
             <div className="section-heading">
               <div><p className="eyebrow">YOUR SHARED RECIPE BANK</p><h2>Recipes</h2></div>
               <div className="inline-actions recipe-actions">
-                <a className="secondary link-button" href="/recipes/import">Import from URL</a>
-                <button className="primary" onClick={() => setShowAddRecipe((value) => !value)}>{showAddRecipe ? "Close" : "+ Add recipe"}</button>
+                <Link className="secondary link-button" href="/recipes/import">Import from URL</Link>
+                <button className="primary" type="button" onClick={() => { setRecipeNotice(null); setShowAddRecipe((value) => !value); }} aria-expanded={showAddRecipe}>{showAddRecipe ? "Close form" : "+ Add recipe"}</button>
               </div>
             </div>
 
+            {recipeNotice && (
+              <div className={`form-alert ${recipeNotice.kind} recipe-notice`} role={recipeNotice.kind === "error" ? "alert" : "status"}>
+                <span>{recipeNotice.text}</span>
+                <button className="text-button" type="button" onClick={() => setRecipeNotice(null)} aria-label="Dismiss message">×</button>
+              </div>
+            )}
+
             {showAddRecipe && (
-              <form className="recipe-form" action={async (formData) => { await addRecipe(formData); setShowAddRecipe(false); }}>
+              <form className="recipe-form" onSubmit={submitNewRecipe} aria-busy={savingRecipe || undefined}>
                 <input type="hidden" name="household_id" value={household.id} />
                 <div className="form-title"><div><p className="eyebrow">NEW GO-TO</p><h3>Add a recipe</h3></div><span>Only the name is required.</span></div>
                 <div className="form-grid two">
-                  <label>Recipe name<input name="name" placeholder="Chicken enchiladas" required /></label>
+                  <label>Recipe name<input ref={recipeNameRef} name="name" placeholder="Chicken enchiladas" required autoComplete="off" /></label>
                   <label>Source URL<input name="source_url" type="url" placeholder="https://…" /></label>
                 </div>
                 <label>Description<textarea name="description" rows={2} placeholder="Creamy, weeknight-friendly, and great for leftovers." /></label>
@@ -116,23 +193,23 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
                   <label>Servings<input name="servings" type="number" min="1" step="0.5" inputMode="decimal" /></label>
                 </div>
                 <div className="form-grid two">
-                  <label>Tags<input name="tags" placeholder="quick, mexican, freezer" /></label>
-                  <label>Dietary tags<input name="dietary_tags" placeholder="gluten-free, dairy-free" /></label>
+                  <label><span className="field-label">Tags <span className="field-hint">(comma-separated)</span></span><input name="tags" placeholder="quick, mexican, freezer" /></label>
+                  <label><span className="field-label">Dietary tags <span className="field-hint">(comma-separated)</span></span><input name="dietary_tags" placeholder="gluten-free, dairy-free" /></label>
                 </div>
                 <div className="form-grid two">
-                  <label>Ingredients<textarea name="ingredients" rows={6} placeholder={"1 lb chicken breast\n8 tortillas\n2 cups enchilada sauce"} /></label>
-                  <label>Instructions<textarea name="instructions" rows={6} placeholder={"Cook and shred chicken\nFill tortillas\nBake until bubbling"} /></label>
+                  <label><span className="field-label">Ingredients <span className="field-hint">(one per line)</span></span><textarea name="ingredients" rows={6} placeholder={"1 lb chicken breast\n8 tortillas\n2 cups enchilada sauce"} /></label>
+                  <label><span className="field-label">Instructions <span className="field-hint">(one step per line)</span></span><textarea name="instructions" rows={6} placeholder={"Cook and shred chicken\nFill tortillas\nBake until bubbling"} /></label>
                 </div>
                 <div className="form-footer">
                   <label className="favorite-check"><input type="checkbox" name="is_favorite" /> ⭐ Make this a favorite</label>
-                  <button className="primary" type="submit">Save recipe</button>
+                  <button className="primary" type="submit" disabled={savingRecipe}>{savingRecipe ? "Saving…" : "Save recipe"}</button>
                 </div>
               </form>
             )}
 
             <div className="recipe-toolbar">
-              <input className="search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes, tags, dietary needs…" aria-label="Search recipes" />
-              <button className={`secondary ${favoriteOnly ? "selected" : ""}`} onClick={() => setFavoriteOnly((value) => !value)} aria-pressed={favoriteOnly}>⭐ Favorites</button>
+              <input className="search-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes, tags, dietary needs…" aria-label="Search recipes" />
+              <button className={`secondary ${favoriteOnly ? "selected" : ""}`} type="button" onClick={() => setFavoriteOnly((value) => !value)} aria-pressed={favoriteOnly}>⭐ Favorites</button>
             </div>
 
             {visibleRecipes.length ? (
@@ -144,7 +221,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
                       <div className="recipe-card-top">
                         <form action={toggleFavorite}>
                           <input type="hidden" name="id" value={recipe.id} /><input type="hidden" name="next" value={String(!recipe.is_favorite)} />
-                          <button className="icon-button" title={recipe.is_favorite ? "Remove favorite" : "Add favorite"} aria-label={recipe.is_favorite ? `Remove ${recipe.name} from favorites` : `Add ${recipe.name} to favorites`}>{recipe.is_favorite ? "⭐" : "☆"}</button>
+                          <FavoriteToggleButton recipe={recipe} />
                         </form>
                         <span className="minutes">{minutes ? `${minutes} min` : `${ingredientCount(recipe)} ingredients`}</span>
                       </div>
@@ -160,7 +237,19 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
                 })}
               </div>
             ) : (
-              <div className="empty-state"><div>🥘</div><h3>{recipes.length ? "No recipes match" : "Your recipe bank is ready"}</h3><p>{recipes.length ? "Try a different search or show all recipes." : "Add the meals you already love. They’ll appear immediately in your weekly planner."}</p>{!recipes.length && <button className="primary" onClick={() => setShowAddRecipe(true)}>Add your first recipe</button>}</div>
+              <div className="empty-state">
+                <div aria-hidden="true">🥘</div>
+                <h3>{recipes.length ? "No recipes match" : "Your recipe bank is ready"}</h3>
+                <p>{recipes.length ? (favoriteOnly && !query.trim() ? "None of your recipes are favorites yet. Tap the ☆ on a recipe to add it." : "Try a different search or show all recipes.") : "Add the meals you already love — type a name or paste a link. They’ll appear immediately in your planner."}</p>
+                {recipes.length ? (
+                  <button className="secondary" type="button" onClick={clearRecipeFilters}>Show all recipes</button>
+                ) : (
+                  <div className="inline-actions empty-state-actions">
+                    <button className="primary" type="button" onClick={openAddRecipe}>Add your first recipe</button>
+                    <Link className="secondary link-button" href="/recipes/import">Import from a link</Link>
+                  </div>
+                )}
+              </div>
             )}
           </section>
         )}
@@ -168,7 +257,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
 
       <nav className="mobile-bottom-nav" aria-label="App sections">
         {views.map((tab) => (
-          <button key={tab.id} className={view === tab.id ? "active" : ""} onClick={() => selectView(tab.id)} aria-current={view === tab.id ? "page" : undefined}>
+          <button key={tab.id} type="button" className={view === tab.id ? "active" : ""} onClick={() => selectView(tab.id)} aria-current={view === tab.id ? "page" : undefined}>
             <span className="mobile-nav-icon" aria-hidden="true">{tab.icon}</span>
             <span>{tab.mobileLabel}</span>
           </button>

@@ -8,6 +8,7 @@ import {
   revokeHouseholdInvitation,
   transferHouseholdOwnership,
 } from "@/app/household-actions";
+import { SubmitButton } from "@/components/submit-button";
 
 type Member = {
   user_id: string;
@@ -257,7 +258,7 @@ export function HouseholdSharing({
 
               <form className="invite-form" action={createHouseholdInvitation}>
                 <input type="hidden" name="household_id" value={householdId} />
-                <button className="primary wide" type="submit">Create invite link</button>
+                <SubmitButton className="primary wide" pendingLabel="Creating link…">Create invite link</SubmitButton>
               </form>
               <p className="invite-fine-print">Each link works once and expires after 7 days. Creating a new share link replaces the previous unused one.</p>
 

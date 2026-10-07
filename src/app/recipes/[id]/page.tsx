@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { deleteRecipeFromDetail, removeRecipePhoto, updateRecipe } from "@/app/recipes/actions";
 import { RecipePhotoUploader } from "@/components/recipe-photo-uploader";
+import { SubmitButton } from "@/components/submit-button";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
@@ -93,7 +94,7 @@ export default async function RecipePage({ params, searchParams }: Props) {
         <span>{household?.name ?? "Shared household"}</span>
       </div>
 
-      {query.saved === "1" && <div className="form-alert success recipe-save-alert">Recipe updated.</div>}
+      {query.saved === "1" && <div className="form-alert success recipe-save-alert" role="status">Recipe updated.</div>}
       {query.imported === "1" && <div className="form-alert success recipe-save-alert">Recipe imported and added to your shared recipe bank.</div>}
       {query.photo === "1" && <div className="form-alert success recipe-save-alert">Recipe photo saved.</div>}
       {query.photo_removed === "1" && <div className="form-alert success recipe-save-alert">Recipe photo removed.</div>}
@@ -132,7 +133,7 @@ export default async function RecipePage({ params, searchParams }: Props) {
                 <RecipePhotoUploader recipeId={recipe.id} householdId={recipe.household_id} hasPhoto />
                 <form action={removeRecipePhoto}>
                   <input type="hidden" name="id" value={recipe.id} />
-                  <button className="text-button" type="submit">Remove photo</button>
+                  <SubmitButton className="text-button" pendingLabel="Removing…" confirmMessage="Remove this photo from the recipe?">Remove photo</SubmitButton>
                 </form>
               </div>
             </section>
@@ -178,7 +179,7 @@ export default async function RecipePage({ params, searchParams }: Props) {
           <div className="recipe-danger-zone">
             <form action={deleteRecipeFromDetail}>
               <input type="hidden" name="id" value={recipe.id} />
-              <button className="danger-link" type="submit">Delete recipe</button>
+              <SubmitButton className="danger-link" pendingLabel="Deleting…" confirmMessage={`Delete “${recipe.name}”? It will be removed from your household’s recipe bank for everyone. This can’t be undone.`}>Delete recipe</SubmitButton>
             </form>
           </div>
         </>
@@ -202,18 +203,18 @@ export default async function RecipePage({ params, searchParams }: Props) {
               <label>Servings<input name="servings" type="number" min="0.5" step="0.5" inputMode="decimal" defaultValue={recipe.servings ?? ""} /></label>
             </div>
             <div className="form-grid two">
-              <label>Tags<input name="tags" defaultValue={recipe.tags.join(", ")} placeholder="quick, mexican, freezer" /></label>
-              <label>Dietary tags<input name="dietary_tags" defaultValue={recipe.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" /></label>
+              <label><span className="field-label">Tags <span className="field-hint">(comma-separated)</span></span><input name="tags" defaultValue={recipe.tags.join(", ")} placeholder="quick, mexican, freezer" /></label>
+              <label><span className="field-label">Dietary tags <span className="field-hint">(comma-separated)</span></span><input name="dietary_tags" defaultValue={recipe.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" /></label>
             </div>
             <div className="form-grid two recipe-long-fields">
-              <label>Ingredients<textarea name="ingredients" rows={12} defaultValue={ingredients.join("\n")} /></label>
-              <label>Instructions<textarea name="instructions" rows={12} defaultValue={instructions.join("\n")} /></label>
+              <label><span className="field-label">Ingredients <span className="field-hint">(one per line)</span></span><textarea name="ingredients" rows={12} defaultValue={ingredients.join("\n")} /></label>
+              <label><span className="field-label">Instructions <span className="field-hint">(one step per line)</span></span><textarea name="instructions" rows={12} defaultValue={instructions.join("\n")} /></label>
             </div>
             <div className="form-footer recipe-edit-footer">
               <label className="favorite-check"><input type="checkbox" name="is_favorite" defaultChecked={recipe.is_favorite} /> ⭐ Family favorite</label>
               <div className="inline-actions">
                 <Link className="secondary link-button" href={`/recipes/${recipe.id}`}>Cancel</Link>
-                <button className="primary" type="submit">Save changes</button>
+                <SubmitButton className="primary" pendingLabel="Saving…">Save changes</SubmitButton>
               </div>
             </div>
           </form>
