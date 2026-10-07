@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Fraunces, Inter, Libre_Baskerville } from "next/font/google";
 import { AuthenticatedFeedbackFooter } from "@/components/authenticated-feedback-footer";
+import { KeyboardAware } from "@/components/keyboard-aware";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import "./globals.css";
 import "./live.css";
@@ -24,6 +25,7 @@ import "./avatar-fix.css";
 import "./mobile-qa.css";
 import "./feedback.css";
 import "./usability.css";
+import "./mobile-polish.css";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
@@ -86,6 +88,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <AuthenticatedFeedbackFooter />
         <ServiceWorkerRegister />
+        <KeyboardAware />
       </body>
     </html>
   );

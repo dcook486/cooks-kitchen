@@ -231,24 +231,24 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
                 <input type="hidden" name="household_id" value={household.id} />
                 <div className="form-title"><div><p className="eyebrow">NEW GO-TO</p><h3>Add a recipe</h3></div><span>Only the name is required.</span></div>
                 <div className="form-grid two">
-                  <label>Recipe name<input ref={recipeNameRef} name="name" placeholder="Chicken enchiladas" required autoComplete="off" /></label>
-                  <label>Source URL<input name="source_url" type="url" placeholder="https://…" /></label>
+                  <label>Recipe name<input ref={recipeNameRef} name="name" placeholder="Chicken enchiladas" required autoComplete="off" autoCapitalize="words" enterKeyHint="next" /></label>
+                  <label>Source URL<input name="source_url" type="url" inputMode="url" placeholder="https://…" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
                 </div>
                 <label>Description<textarea name="description" rows={2} placeholder="Creamy, weeknight-friendly, and great for leftovers." /></label>
                 <div className="form-grid three">
-                  <label>Prep minutes<input name="prep_minutes" type="number" min="0" inputMode="numeric" /></label>
-                  <label>Cook minutes<input name="cook_minutes" type="number" min="0" inputMode="numeric" /></label>
-                  <label>Servings<input name="servings" type="number" min="1" step="0.5" inputMode="decimal" /></label>
+                  <label>Prep minutes<input name="prep_minutes" type="number" min="0" inputMode="numeric" enterKeyHint="next" /></label>
+                  <label>Cook minutes<input name="cook_minutes" type="number" min="0" inputMode="numeric" enterKeyHint="next" /></label>
+                  <label>Servings<input name="servings" type="number" min="1" step="0.5" inputMode="decimal" enterKeyHint="next" /></label>
                 </div>
                 <div className="form-grid two">
-                  <label><span className="field-label">Tags <span className="field-hint">(comma-separated)</span></span><input name="tags" placeholder="quick, mexican, freezer" /></label>
-                  <label><span className="field-label">Dietary tags <span className="field-hint">(comma-separated)</span></span><input name="dietary_tags" placeholder="gluten-free, dairy-free" /></label>
+                  <label><span className="field-label">Tags <span className="field-hint">(comma-separated)</span></span><input name="tags" placeholder="quick, mexican, freezer" autoComplete="off" autoCapitalize="none" enterKeyHint="next" /></label>
+                  <label><span className="field-label">Dietary tags <span className="field-hint">(comma-separated)</span></span><input name="dietary_tags" placeholder="gluten-free, dairy-free" autoComplete="off" autoCapitalize="none" enterKeyHint="next" /></label>
                 </div>
                 <div className="form-grid two">
                   <label><span className="field-label">Ingredients <span className="field-hint">(one per line)</span></span><textarea name="ingredients" rows={6} placeholder={"1 lb chicken breast\n8 tortillas\n2 cups enchilada sauce"} /></label>
                   <label><span className="field-label">Instructions <span className="field-hint">(one step per line)</span></span><textarea name="instructions" rows={6} placeholder={"Cook and shred chicken\nFill tortillas\nBake until bubbling"} /></label>
                 </div>
-                <div className="form-footer">
+                <div className="form-footer sticky-save-bar">
                   <label className="favorite-check"><input type="checkbox" name="is_favorite" /> ⭐ Make this a favorite</label>
                   <button className="primary" type="submit" disabled={savingRecipe}>{savingRecipe ? "Saving…" : "Save recipe"}</button>
                 </div>
@@ -256,7 +256,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
             )}
 
             <div className="recipe-toolbar">
-              <input className="search-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes, tags, dietary needs…" aria-label="Search recipes" />
+              <input className="search-input" type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes, tags, dietary needs…" aria-label="Search recipes" />
               <button className={`secondary ${favoriteOnly ? "selected" : ""}`} type="button" onClick={() => setFavoriteOnly((value) => !value)} aria-pressed={favoriteOnly}>⭐ Favorites</button>
             </div>
 
@@ -265,7 +265,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
                 {visibleRecipes.map((recipe) => {
                   const minutes = totalMinutes(recipe);
                   return (
-                    <article className="recipe-card" key={recipe.id}>
+                    <article className="recipe-card tappable-card" key={recipe.id}>
                       <div className="recipe-card-top">
                         <form action={toggleFavorite}>
                           <input type="hidden" name="id" value={recipe.id} /><input type="hidden" name="next" value={String(!recipe.is_favorite)} />

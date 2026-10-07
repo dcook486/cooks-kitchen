@@ -78,6 +78,12 @@ export default async function ImportRecipePage({ searchParams }: Props) {
             id="recipe-url"
             name="url"
             type="url"
+            inputMode="url"
+            autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="go"
             defaultValue={requestedUrl}
             placeholder="https://www.example.com/favorite-recipe"
             required
@@ -112,24 +118,24 @@ export default async function ImportRecipePage({ searchParams }: Props) {
             <input type="hidden" name="household_id" value={membership.household_id} />
             {requestedNext && <input type="hidden" name="next" value={requestedNext} />}
             <div className="form-grid two">
-              <label>Recipe name<input name="name" defaultValue={imported.name} required /></label>
-              <label>Source URL<input name="source_url" type="url" defaultValue={imported.source_url} /></label>
+              <label>Recipe name<input name="name" defaultValue={imported.name} required autoComplete="off" autoCapitalize="words" enterKeyHint="next" /></label>
+              <label>Source URL<input name="source_url" type="url" inputMode="url" defaultValue={imported.source_url} autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" /></label>
             </div>
             <label>Description<textarea name="description" rows={3} defaultValue={imported.description} /></label>
             <div className="form-grid three">
-              <label>Prep minutes<input name="prep_minutes" type="number" min="0" inputMode="numeric" defaultValue={imported.prep_minutes ?? ""} /></label>
-              <label>Cook minutes<input name="cook_minutes" type="number" min="0" inputMode="numeric" defaultValue={imported.cook_minutes ?? ""} /></label>
-              <label>Servings<input name="servings" type="number" min="0.5" step="0.5" inputMode="decimal" defaultValue={imported.servings ?? ""} /></label>
+              <label>Prep minutes<input name="prep_minutes" type="number" min="0" inputMode="numeric" enterKeyHint="next" defaultValue={imported.prep_minutes ?? ""} /></label>
+              <label>Cook minutes<input name="cook_minutes" type="number" min="0" inputMode="numeric" enterKeyHint="next" defaultValue={imported.cook_minutes ?? ""} /></label>
+              <label>Servings<input name="servings" type="number" min="0.5" step="0.5" inputMode="decimal" enterKeyHint="next" defaultValue={imported.servings ?? ""} /></label>
             </div>
             <div className="form-grid two">
-              <label><span className="field-label">Tags <span className="field-hint">(comma-separated)</span></span><input name="tags" defaultValue={imported.tags.join(", ")} placeholder="quick, mexican, freezer" /></label>
-              <label><span className="field-label">Dietary tags <span className="field-hint">(comma-separated)</span></span><input name="dietary_tags" defaultValue={imported.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" /></label>
+              <label><span className="field-label">Tags <span className="field-hint">(comma-separated)</span></span><input name="tags" defaultValue={imported.tags.join(", ")} placeholder="quick, mexican, freezer" autoComplete="off" autoCapitalize="none" enterKeyHint="next" /></label>
+              <label><span className="field-label">Dietary tags <span className="field-hint">(comma-separated)</span></span><input name="dietary_tags" defaultValue={imported.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" autoComplete="off" autoCapitalize="none" enterKeyHint="next" /></label>
             </div>
             <div className="form-grid two recipe-long-fields">
               <label><span className="field-label">Ingredients <span className="field-hint">(one per line)</span></span><textarea name="ingredients" rows={14} defaultValue={imported.ingredients.join("\n")} placeholder="One ingredient per line" /></label>
               <label><span className="field-label">Instructions <span className="field-hint">(one step per line)</span></span><textarea name="instructions" rows={14} defaultValue={imported.instructions.join("\n")} placeholder="One step per line" /></label>
             </div>
-            <div className="form-footer recipe-edit-footer">
+            <div className="form-footer recipe-edit-footer sticky-save-bar">
               <label className="favorite-check"><input type="checkbox" name="is_favorite" /> ⭐ Family favorite</label>
               <div className="inline-actions">
                 <Link className="secondary link-button" href={backHref}>Cancel</Link>
