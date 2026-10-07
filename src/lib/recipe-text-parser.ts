@@ -21,9 +21,10 @@ type Section = "intro" | "ingredients" | "steps" | "other";
 const INGREDIENT_HEADING = /^(?:the\s+)?(?:ingredients?|ingredient list|what you(?:'|’)ll need|you(?:'|’)ll need|you will need|shopping list)\b/i;
 const STEP_HEADING = /^(?:the\s+)?(?:instructions?|directions?|method|steps?|preparation|prep(?:aration)? steps|how to make(?: it)?|cooking instructions)\b/i;
 const OTHER_HEADING = /^(?:tips?|chef(?:'|’)s tips?|notes?|recipe notes|substitutions?|swaps?|variations?|serving suggestions?|serve with|what to serve|to serve|storage|storing|leftovers|make[- ]ahead|freezing|reheating|how to tell|doneness|nutrition|equipment|tools|why (?:this|it) works|faq|optional add-ons|enjoy)/i;
-const META_LABEL = /^(?:prep|cook|cooking|total|active|inactive|bake|baking|ready)\s*(?:time)?\b|^(?:serves|servings|yield|makes|portions)\b/i;
+// "Prep time", "Cook: 20 min", "Bake 25 minutes", "Serves 4" (but not a step heading like "Cook the noodles").
+const META_LABEL = /^(?:prep|cook|cooking|total|active|inactive|bake|baking|ready)\s*(?:time\b|(?=\s*[:\-–|]|\s*$|\s+\d|\s+in\b))|^(?:serves|servings|yield|makes|portions)\b/i;
 const GENERIC_TITLE = /^(?:recipe generator|recipe|the recipe|here(?:'|’)s|absolutely|sure|of course|great|okay|ok)\b/i;
-const CHATTER = /^(?:absolutely|sure|of course|great (?:choice|question|idea)|here(?:'|’)s|here is|okay|ok[,!]|happy to|i(?:'|’)d be|i hope|hope you|let me know|would you like|want me to|do you want|if you(?:'|’)d like|enjoy|bon app[ée]tit|feel free)/i;
+const CHATTER = /^(?:absolutely|sure|of course|great (?:choice|question|idea)|here(?:'|’)s|here is|okay|ok[,!]|happy to|i(?:'|’)d be|i hope|hope you|let me know|would you like|want me to|do you want|if you(?:'|’)d like|if you want|enjoy|bon app[ée]tit|feel free)/i;
 const BULLET = /^(?:[-*+•▪◦‣–]|\u2022)\s+(.+)$/;
 const NUMBERED = /^(?:step\s*)?(\d{1,2})\s*[.):]\s+(.+)$/i;
 
@@ -137,51 +138,149 @@ function joinStep(title: string, body: string) {
   return /[.:!?]$/.test(title) ? `${title} ${body}` : `${title}: ${body}`;
 }
 
+/** Folds a sub-bullet into a step: "season with: 1 tsp salt; ½ tsp pepper". */
+function appendBullet(step: string, item: string) {
+  if (!step) return item;
+  return /[.!?:;]$/.test(step) ? `${step} ${item}` : `${step}; ${item}`;
+}
+
+/** "1. Prep", "Step 2: Heat the grill", "Step 3", "4) Rest" used as a heading → the title ("" when only a number). */
+function numberedHeading(heading: string): string | null {
+  const numbered = heading.match(/^(?:step\s*)?\d{1,2}(?:\s*[.):]|\s+[-–—])\s+(.+)$/i);
+  if (numbered) return numbered[1].trim();
+  const step = heading.match(/^step\s*\d{1,2}\s*[.:\-–—]?\s*(.*)$/i);
+  return step ? step[1].trim() : null;
+}
+
+// Asides inside steps that are commentary, not instructions ("**My pick:** …", "If you're using a Traeger, I'd …").
+const STEP_ASIDE = /^(?:my (?:pick|take|tip|favorite)|pro tip|tip|note|chef(?:'|’)s note|optional tip)\b[^:]{0,20}:|\b(?:I(?:'|’)d|I would|I recommend|I like to|I prefer)\b/i;
+
+const STEP_INTRO = /\b(?:how to make|steps|directions|instructions|method)\b/i;
+
+type OpenStep = { kind: "numbered" | "bullet" | "heading" | "plain"; hasBody: boolean; label: boolean; listTail?: boolean };
+
 export function parseRecipeText(input: string): ParsedRecipeText {
   const rawLines = input.replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/\s+$/, ""));
   const cleanedAll = rawLines.map(cleanRecipeLine).filter(Boolean);
 
   let section: Section = "intro";
+  // "other" reached by prose rather than an explicit heading ("Tips", "Storage"): steps may still follow.
+  let softOther = false;
   let sawIngredientBullets = false;
-  let stepsNumbered = false;
   let previousBlank = true;
-  let stepOpen = false;
+  let open: OpenStep | null = null;
+  let listMode = false;
+  let pendingLabel = "";
   const introHeadings: string[] = [];
   const introLines: string[] = [];
   const ingredients: string[] = [];
   const steps: string[] = [];
+
+  const nextContent = (from: number) => {
+    for (let j = from; j < rawLines.length; j += 1) if (rawLines[j].trim()) return rawLines[j];
+    return "";
+  };
+  const isTopLevelNumbered = (raw: string) => {
+    const match = raw.match(NUMBERED);
+    return Boolean(match) && !/^\s{2,}|^\t/.test(raw) && !looksLikeIngredient(cleanRecipeLine(match![2]));
+  };
+  const setLast = (value: string) => {
+    steps[steps.length - 1] = value;
+  };
+  const dropEmptyLabel = () => {
+    if (open?.label && !open.hasBody) steps.pop();
+  };
+  const startStep = (text: string, kind: OpenStep["kind"], label = false) => {
+    steps.push(pendingLabel && kind !== "heading" ? joinStep(pendingLabel, text) : text);
+    if (kind !== "heading") pendingLabel = "";
+    open = { kind, hasBody: kind !== "heading", label };
+    if (kind !== "plain") listMode = true;
+  };
+  const enterSteps = () => {
+    section = "steps";
+    softOther = false;
+    open = null;
+  };
+  // A heading inside the steps: "### 1. Prep" (a step with its body below) or "Make the sauce" (a step, or a label for the list under it).
+  const stepHeading = (heading: string) => {
+    dropEmptyLabel();
+    const title = numberedHeading(heading);
+    if (title !== null) startStep(title, "heading");
+    // "Here's how to make it:" introduces the steps; it isn't a step label.
+    else if (isChatter(heading) || STEP_INTRO.test(heading)) open = null;
+    else startStep(heading, "heading", true);
+  };
 
   for (let i = 0; i < rawLines.length; i += 1) {
     const raw = rawLines[i];
     const line = raw.trim();
     if (!line) {
       previousBlank = true;
-      stepOpen = stepOpen && section === "steps" && !stepsNumbered ? false : stepOpen;
       continue;
     }
     if (/^(?:[-*_]\s*){3,}$/.test(line) || /^(?:=+|-{2,})$/.test(line)) {
+      // A horizontal rule closes the current step.
       previousBlank = true;
-      stepOpen = false;
+      if (section === "steps") {
+        dropEmptyLabel();
+        open = null;
+      }
       continue;
     }
 
     const heading = headingText(line, rawLines[i + 1]?.trim());
     if (heading !== null) {
-      const next = headingSection(heading);
+      const numberedTitle = numberedHeading(heading);
+      // "Step 1: Prep the pan" is a step, not an "Steps" section heading.
+      const next = numberedTitle === null ? headingSection(heading) : null;
       if (next) {
+        if (section === "steps") dropEmptyLabel();
         section = next;
-        stepOpen = false;
+        softOther = false;
+        open = null;
+        pendingLabel = "";
+        if (next === "steps") listMode = false;
         previousBlank = true;
         continue;
       }
-      if (section === "intro") {
+      const colonLabel = !/^(?:#|\*\*|__)/.test(line) && /:$/.test(cleanRecipeLine(line));
+      const openStep = open as OpenStep | null;
+      if (section === "steps" && colonLabel && openStep?.kind === "heading" && numberedTitle === null) {
+        // "For a 1½-inch steak:" inside "### 3. Grill" is part of that step's text.
+        setLast(openStep.hasBody ? `${steps[steps.length - 1]} ${cleanRecipeLine(line)}` : joinStep(steps[steps.length - 1], cleanRecipeLine(line)));
+        openStep.hasBody = true;
+      } else if (section === "steps" && isChatter(heading) && !STEP_INTRO.test(heading)) {
+        // "If you want, I can:" — the assistant has moved on from the recipe.
+        dropEmptyLabel();
+        section = "other";
+        softOther = false;
+        open = null;
+      } else if (section === "steps") {
+        if (!META_LABEL.test(heading)) stepHeading(heading);
+      } else if (numberedTitle !== null && (section !== "other" || softOther)) {
+        // "### 1. Prep" right after the ingredients, with no "Instructions" heading.
+        enterSteps();
+        stepHeading(heading);
+      } else if (section === "intro") {
         if (!META_LABEL.test(heading)) introHeadings.push(heading);
         else introLines.push(line);
       } else if (section === "ingredients" && !META_LABEL.test(heading)) {
-        // Sub-group such as "For the sauce" stays as a label line in the ingredient list.
-        ingredients.push(`${heading}:`);
-      } else if (section === "steps") {
-        stepOpen = false;
+        const after = nextContent(i + 1);
+        const afterClean = cleanRecipeLine(after);
+        const leadsSteps =
+          isTopLevelNumbered(after) ||
+          (!BULLET.test(after.trim()) && !NUMBERED.test(after.trim()) && headingText(after.trim(), undefined) === null && afterClean.length >= 60 && !looksLikeIngredient(afterClean) && !isChatter(afterClean));
+        if (sawIngredientBullets && leadsSteps) {
+          // "Make the sauce" followed by steps, not an ingredient group.
+          enterSteps();
+          stepHeading(heading);
+        } else {
+          // Sub-group such as "For the sauce" stays as a label line in the ingredient list.
+          ingredients.push(`${heading}:`);
+        }
+      } else if (section === "other" && softOther && isTopLevelNumbered(nextContent(i + 1)) && !steps.length) {
+        enterSteps();
+        stepHeading(heading);
       }
       previousBlank = false;
       continue;
@@ -190,8 +289,15 @@ export function parseRecipeText(input: string): ParsedRecipeText {
     const bullet = line.match(BULLET);
     const numbered = line.match(NUMBERED);
     const cleaned = cleanRecipeLine(line);
+    const indented = /^\s{2,}|^\t/.test(raw);
 
     if (section === "ingredients") {
+      if (numbered && sawIngredientBullets && !looksLikeIngredient(cleanRecipeLine(numbered[2]))) {
+        // A numbered list straight after the ingredient bullets is the method.
+        enterSteps();
+        i -= 1;
+        continue;
+      }
       if (bullet) {
         sawIngredientBullets = true;
         const item = cleanRecipeLine(bullet[1]);
@@ -203,36 +309,60 @@ export function parseRecipeText(input: string): ParsedRecipeText {
       } else if (sawIngredientBullets && previousBlank && !looksLikeIngredient(cleaned)) {
         // Prose after a bulleted list ("You can also use thighs.") ends the list.
         section = "other";
+        softOther = true;
       } else if (sawIngredientBullets && looksLikeIngredient(cleaned)) {
         ingredients.push(cleaned);
       }
+    } else if (section === "other" && softOther && numbered && !steps.length && !looksLikeIngredient(cleanRecipeLine(numbered[2]))) {
+      enterSteps();
+      i -= 1;
+      continue;
     } else if (section === "steps") {
-      if (numbered) {
-        stepsNumbered = true;
-        steps.push(cleanRecipeLine(numbered[2]));
-        stepOpen = true;
-      } else if (bullet && (!stepsNumbered || !stepOpen || previousBlank)) {
-        steps.push(cleanRecipeLine(bullet[1]));
-        stepsNumbered = true;
-        stepOpen = true;
-      } else if (isChatter(cleaned) && previousBlank) {
+      const current = open as OpenStep | null;
+      if (numbered && !(indented && current) && !(current?.kind === "heading" && !current.label)) {
+        if (current?.kind === "heading" && current.label && !current.hasBody) {
+          // "Make the sauce" then "1. …": the heading labels the first step of this list.
+          pendingLabel = steps.pop() ?? "";
+        }
+        startStep(cleanRecipeLine(numbered[2]), "numbered");
+      } else if ((numbered || bullet) && current && (indented || current.kind === "heading" || (current.kind === "numbered" && (!previousBlank || /:$/.test(steps[steps.length - 1]))))) {
+        // Nested bullets/numbers under a step fold into that step.
+        const item = cleanRecipeLine((numbered ? numbered[2] : bullet![1]));
+        setLast(current.hasBody ? appendBullet(steps[steps.length - 1], item) : joinStep(steps[steps.length - 1], item));
+        current.hasBody = true;
+        current.listTail = true;
+      } else if (bullet) {
+        startStep(cleanRecipeLine(bullet[1]), "bullet");
+      } else if (STEP_ASIDE.test(cleaned)) {
+        // Commentary inside the method; skip it but keep reading steps.
+      } else if (isChatter(cleaned) && (previousBlank || !current)) {
+        dropEmptyLabel();
         section = "other";
-      } else if (stepOpen && steps.length && stepsNumbered && (!previousBlank || /^\s{2,}/.test(raw))) {
+        softOther = false;
+        open = null;
+      } else if (current?.kind === "heading") {
+        // Text after a folded sub-list starts a new sentence.
+        const last = steps[steps.length - 1];
+        setLast(current.listTail && !/[.!?:;]$/.test(last) ? `${last}. ${cleaned}` : joinStep(last, cleaned));
+        current.hasBody = true;
+        current.listTail = false;
+      } else if (current && current.kind !== "plain" && (!previousBlank || indented)) {
         // Wrapped text under "1. **Sear the chicken**" belongs to that step.
-        steps[steps.length - 1] = joinStep(steps[steps.length - 1], cleaned);
-      } else if (stepsNumbered && previousBlank) {
-        // A plain paragraph after numbered steps: either an indented continuation or the end of the steps.
-        if (/^\s{2,}/.test(raw) && steps.length) steps[steps.length - 1] = joinStep(steps[steps.length - 1], cleaned);
-        else section = "other";
+        setLast(joinStep(steps[steps.length - 1], cleaned));
+      } else if (listMode && previousBlank) {
+        // A plain paragraph after a list of steps ends the steps.
+        section = "other";
+        softOther = true;
+        open = null;
       } else {
-        steps.push(cleaned);
-        stepOpen = true;
+        startStep(cleaned, "plain");
       }
     } else if (section === "intro") {
       introLines.push(line);
     }
     previousBlank = false;
   }
+  if (section === "steps") dropEmptyLabel();
 
   // No headings at all: fall back to the shape of the lines.
   if (!ingredients.length && !steps.length) {
