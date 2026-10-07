@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { deleteRecipeFromDetail, removeRecipePhoto, updateRecipe } from "@/app/recipes/actions";
-import { RecipePhotoUploader } from "@/components/recipe-photo-uploader";
+import { updateRecipe } from "@/app/recipes/actions";
+import { DeleteRecipeButton, FlashToast, RecipePhotoSection } from "@/components/recipe-detail-actions";
 import { SubmitButton } from "@/components/submit-button";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,6 +26,8 @@ type Recipe = {
   dietary_tags: string[];
   is_favorite: boolean;
 };
+
+const FLASH_PARAMS = ["saved", "imported", "photo", "photo_removed"];
 
 function ingredientLines(value: unknown) {
   if (!Array.isArray(value)) return [];
@@ -94,10 +96,10 @@ export default async function RecipePage({ params, searchParams }: Props) {
         <span>{household?.name ?? "Shared household"}</span>
       </div>
 
-      {query.saved === "1" && <div className="form-alert success recipe-save-alert" role="status">Recipe updated.</div>}
-      {query.imported === "1" && <div className="form-alert success recipe-save-alert">Recipe imported and added to your shared recipe bank.</div>}
-      {query.photo === "1" && <div className="form-alert success recipe-save-alert">Recipe photo saved.</div>}
-      {query.photo_removed === "1" && <div className="form-alert success recipe-save-alert">Recipe photo removed.</div>}
+      {query.saved === "1" && <FlashToast message="Recipe updated." params={FLASH_PARAMS} />}
+      {query.imported === "1" && <FlashToast message="Recipe imported and added to your shared recipe bank." params={FLASH_PARAMS} />}
+      {query.photo === "1" && <FlashToast message="Recipe photo saved." params={FLASH_PARAMS} />}
+      {query.photo_removed === "1" && <FlashToast message="Recipe photo removed." params={FLASH_PARAMS} />}
 
       {!editing ? (
         <>
@@ -123,30 +125,7 @@ export default async function RecipePage({ params, searchParams }: Props) {
             <div><span>Servings</span><strong>{recipe.servings ?? "—"}</strong></div>
           </section>
 
-          {imageUrl ? (
-            <section className="recipe-photo-block">
-              <div className="recipe-user-photo">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imageUrl} alt={recipe.name} />
-              </div>
-              <div className="recipe-photo-controls">
-                <RecipePhotoUploader recipeId={recipe.id} householdId={recipe.household_id} hasPhoto />
-                <form action={removeRecipePhoto}>
-                  <input type="hidden" name="id" value={recipe.id} />
-                  <SubmitButton className="text-button" pendingLabel="Removing…" confirmMessage="Remove this photo from the recipe?">Remove photo</SubmitButton>
-                </form>
-              </div>
-            </section>
-          ) : (
-            <section className="recipe-photo-prompt">
-              <div>
-                <p className="eyebrow">OPTIONAL PHOTO</p>
-                <h3>Add your own photo</h3>
-                <p>Use a photo of your family&apos;s version instead of relying on an image hosted by the recipe website.</p>
-              </div>
-              <RecipePhotoUploader recipeId={recipe.id} householdId={recipe.household_id} />
-            </section>
-          )}
+          <RecipePhotoSection recipeId={recipe.id} householdId={recipe.household_id} recipeName={recipe.name} imageUrl={imageUrl} />
 
           <div className="recipe-cook-grid">
             <section className="recipe-cook-card ingredients-card">
@@ -177,10 +156,7 @@ export default async function RecipePage({ params, searchParams }: Props) {
           </div>
 
           <div className="recipe-danger-zone">
-            <form action={deleteRecipeFromDetail}>
-              <input type="hidden" name="id" value={recipe.id} />
-              <SubmitButton className="danger-link" pendingLabel="Deleting…" confirmMessage={`Delete “${recipe.name}”? It will be removed from your household’s recipe bank for everyone. This can’t be undone.`}>Delete recipe</SubmitButton>
-            </form>
+            <DeleteRecipeButton recipeId={recipe.id} />
           </div>
         </>
       ) : (

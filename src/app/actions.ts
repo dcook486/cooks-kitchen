@@ -438,3 +438,107 @@ export async function acceptHouseholdInvitation(formData: FormData) {
   revalidatePath("/", "layout");
   redirect("/?section=household&joined=1");
 }
+
+type CopyWeekResult =
+  | { ok: true; copied: number; sourceCount: number; keptExisting: number }
+  | { ok: false; error: string };
+
+/**
+ * Copies last week's dinners (recipes, leftovers, eating out) into the same weekdays of `week_start`,
+ * only filling days that are still empty. Never overwrites an existing entry.
+ */
+export async function copyPreviousWeek(formData: FormData): Promise<CopyWeekResult> {
+  const { supabase, userId } = await currentUserId();
+  const householdId = clean(formData.get("household_id"));
+  const weekStart = mondayForIso(clean(formData.get("week_start")));
+  if (!householdId || !weekStart) return { ok: false, error: "Missing week information." };
+
+  const { data: membership } = await supabase.from("household_members").select("household_id").eq("household_id", householdId).eq("user_id", userId).maybeSingle();
+  if (!membership) return { ok: false, error: "You do not have access to this household." };
+
+  const previousDate = new Date(`${weekStart}T12:00:00Z`);
+  previousDate.setUTCDate(previousDate.getUTCDate() - 7);
+  const previousWeekStart = previousDate.toISOString().slice(0, 10);
+
+  const { data: plans, error: plansError } = await supabase
+    .from("meal_plans")
+    .select("id, week_start")
+    .eq("household_id", householdId)
+    .in("week_start", [previousWeekStart, weekStart]);
+  if (plansError) return { ok: false, error: plansError.message };
+
+  const previousPlanId = plans?.find((plan) => plan.week_start === previousWeekStart)?.id;
+  let currentPlanId = plans?.find((plan) => plan.week_start === weekStart)?.id;
+  if (!previousPlanId) return { ok: true, copied: 0, sourceCount: 0, keptExisting: 0 };
+
+  const { data: sourceRows, error: sourceError } = await supabase
+    .from("meal_plan_items")
+    .select("meal_date, recipe_id, status, planned_servings")
+    .eq("meal_plan_id", previousPlanId)
+    .eq("meal_type", "dinner")
+    .in("status", ["planned", "leftovers", "eating_out"]);
+  if (sourceError) return { ok: false, error: sourceError.message };
+
+  // A "planned" row without a recipe is a dinner whose recipe was deleted; there's nothing to copy.
+  const sources = (sourceRows ?? []).filter((row) => row.status !== "planned" || row.recipe_id);
+  if (!sources.length) return { ok: true, copied: 0, sourceCount: 0, keptExisting: 0 };
+
+  const takenDates = new Set<string>();
+  if (currentPlanId) {
+    const { data: existingRows, error: existingError } = await supabase
+      .from("meal_plan_items")
+      .select("meal_date")
+      .eq("meal_plan_id", currentPlanId)
+      .eq("meal_type", "dinner");
+    if (existingError) return { ok: false, error: existingError.message };
+    for (const row of existingRows ?? []) takenDates.add(row.meal_date);
+  }
+
+  const shifted = sources.map((row) => {
+    const date = new Date(`${row.meal_date}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + 7);
+    return { ...row, meal_date: date.toISOString().slice(0, 10) };
+  });
+  const toCopy = shifted.filter((row) => !takenDates.has(row.meal_date));
+  const keptExisting = shifted.length - toCopy.length;
+  if (!toCopy.length) return { ok: true, copied: 0, sourceCount: sources.length, keptExisting };
+
+  if (!currentPlanId) {
+    const { data: newPlan, error } = await supabase.from("meal_plans").insert({ household_id: householdId, week_start: weekStart, created_by: userId }).select("id").single();
+    if (error || !newPlan) return { ok: false, error: error?.message ?? "Could not create this week's plan." };
+    currentPlanId = newPlan.id;
+  }
+
+  const rows = toCopy.map((row) => ({
+    meal_plan_id: currentPlanId!,
+    meal_date: row.meal_date,
+    meal_type: "dinner",
+    recipe_id: row.status === "planned" ? row.recipe_id : null,
+    custom_label: null,
+    status: row.status,
+    notes: null,
+    planned_servings: row.status === "planned" ? row.planned_servings : null,
+  }));
+
+  // ignoreDuplicates: if someone planned a day in the meantime, keep their entry.
+  const { data: inserted, error: insertError } = await supabase
+    .from("meal_plan_items")
+    .upsert(rows, { onConflict: "meal_plan_id,meal_date,meal_type", ignoreDuplicates: true })
+    .select("id");
+  if (insertError) return { ok: false, error: insertError.message };
+
+  const copied = inserted?.length ?? 0;
+  if (copied > 0) {
+    await trackProductEvent({
+      supabase,
+      userId,
+      eventName: "dinner_planned",
+      householdId,
+      pagePath: "/",
+      properties: { selection_type: "copy_last_week", copied_count: copied },
+    });
+  }
+
+  revalidatePath("/");
+  return { ok: true, copied, sourceCount: sources.length, keptExisting: keptExisting + (toCopy.length - copied) };
+}

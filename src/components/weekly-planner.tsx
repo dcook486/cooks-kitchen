@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { saveDinnerPlan } from "@/app/actions";
+import { copyPreviousWeek, saveDinnerPlan } from "@/app/actions";
 import { quickAddRecipeAndPlan } from "@/app/quick-add-actions";
 import { scaleIngredientLines } from "@/lib/ingredient-scaling";
 
@@ -46,6 +46,7 @@ type Props = {
   dayAnchor: string;
   monthAnchor: string;
   initialMode: PlannerMode;
+  onNotify?: (text: string, tone?: "success" | "info" | "error") => void;
 };
 
 type PickerDay = {
@@ -220,7 +221,7 @@ function recipePhotoUrl(value: string | null | undefined) {
   return url?.includes("/storage/v1/object/public/recipe-photos/") ? url : null;
 }
 
-export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, weekStart, currentWeekStart, dayAnchor, monthAnchor, initialMode }: Props) {
+export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, weekStart, currentWeekStart, dayAnchor, monthAnchor, initialMode, onNotify }: Props) {
   const previousWeek = addDays(weekStart, -7);
   const nextWeek = addDays(weekStart, 7);
   const isCurrentWeek = weekStart === currentWeekStart;
@@ -251,6 +252,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const dialogRef = useRef<HTMLDivElement>(null);
   const pickerTriggerRef = useRef<HTMLElement | null>(null);
   const [quickAdding, startQuickAddTransition] = useTransition();
+  const [copyingWeek, startCopyWeekTransition] = useTransition();
 
   const activeItem = pickerDay
     ? mealPlanItems.find((entry) => entry.meal_date === pickerDay.mealDate && entry.meal_type === "dinner")
@@ -465,6 +467,42 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     });
   }
 
+  function copyLastWeek() {
+    if (copyingWeek) return;
+    const formData = new FormData();
+    formData.set("household_id", householdId);
+    formData.set("week_start", weekStart);
+    const weekDates = dayNames.map((_, index) => addDays(weekStart, index));
+
+    startCopyWeekTransition(async () => {
+      let result: Awaited<ReturnType<typeof copyPreviousWeek>>;
+      try {
+        result = await copyPreviousWeek(formData);
+      } catch {
+        onNotify?.("We couldn’t copy last week. Check your connection and try again.", "error");
+        return;
+      }
+      if (!result.ok) {
+        onNotify?.(`We couldn’t copy last week: ${result.error}`, "error");
+        return;
+      }
+      if (result.copied > 0) {
+        // Let freshly copied days show through any "cleared" optimistic state from earlier in this visit.
+        setOptimisticSelections((current) => {
+          const next = { ...current };
+          for (const date of weekDates) if (next[date] === "none") delete next[date];
+          return next;
+        });
+        const kept = result.keptExisting ? ` Kept ${result.keptExisting} ${result.keptExisting === 1 ? "day" : "days"} you’d already planned.` : "";
+        onNotify?.(`Copied ${result.copied} ${result.copied === 1 ? "dinner" : "dinners"} from last week.${kept}`);
+      } else if (result.sourceCount === 0) {
+        onNotify?.("Nothing to copy. Last week doesn’t have any dinners planned.", "info");
+      } else {
+        onNotify?.("Nothing to copy. Every day last week planned is already filled in this week.", "info");
+      }
+    });
+  }
+
   const headingTitle = mode === "day"
     ? formatWeekday(dayDate)
     : mode === "week"
@@ -504,6 +542,9 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
               <Link className="secondary link-button" href={`/?week=${previousWeek}`}>← Previous</Link>
               {!isCurrentWeek && <Link className="secondary link-button" href="/">This week</Link>}
               <Link className="secondary link-button" href={`/?week=${nextWeek}`}>Next →</Link>
+              <button className="secondary copy-week-button" type="button" onClick={copyLastWeek} disabled={copyingWeek} aria-busy={copyingWeek || undefined} title="Fill this week’s empty days with last week’s dinners">
+                {copyingWeek ? "Copying…" : "⧉ Copy last week"}
+              </button>
             </div>
           ) : (
             <div className="inline-actions week-actions" aria-label="Month navigation">

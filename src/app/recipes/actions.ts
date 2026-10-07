@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { deleteRecipeById, photoPathFromPublicUrl, removeRecipePhotoById, UUID_PATTERN } from "@/lib/recipe-mutations";
 import { createClient } from "@/lib/supabase/server";
 
 function clean(value: FormDataEntryValue | null) {
@@ -37,19 +38,6 @@ function webUrlOrNull(value: FormDataEntryValue | null) {
     return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : null;
   } catch {
     return null;
-  }
-}
-
-function photoPathFromPublicUrl(value: string | null) {
-  if (!value) return null;
-  const marker = "/storage/v1/object/public/recipe-photos/";
-  const index = value.indexOf(marker);
-  if (index < 0) return null;
-  const encodedPath = value.slice(index + marker.length);
-  try {
-    return decodeURIComponent(encodedPath);
-  } catch {
-    return encodedPath;
   }
 }
 
@@ -136,22 +124,7 @@ export async function removeRecipePhoto(formData: FormData) {
   const id = clean(formData.get("id"));
   if (!id) return;
 
-  const { data: recipe, error: recipeError } = await supabase
-    .from("recipes")
-    .select("image_url")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (recipeError || !recipe) throw new Error("That recipe is not available to this household.");
-  const path = photoPathFromPublicUrl(recipe.image_url);
-
-  const { error } = await supabase
-    .from("recipes")
-    .update({ image_url: null, updated_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
-  if (path) await supabase.storage.from("recipe-photos").remove([path]);
+  await removeRecipePhotoById(supabase, id);
 
   revalidatePath("/");
   revalidatePath(`/recipes/${id}`);
@@ -163,13 +136,37 @@ export async function deleteRecipeFromDetail(formData: FormData) {
   const id = clean(formData.get("id"));
   if (!id) return;
 
-  const { data: recipe } = await supabase.from("recipes").select("image_url").eq("id", id).maybeSingle();
-  const path = photoPathFromPublicUrl(recipe?.image_url ?? null);
-
-  const { error } = await supabase.from("recipes").delete().eq("id", id);
-  if (error) throw new Error(error.message);
-  if (path) await supabase.storage.from("recipe-photos").remove([path]);
+  await deleteRecipeById(supabase, id);
 
   revalidatePath("/");
   redirect("/?section=recipes");
+}
+
+type UndoableResult = { ok: true } | { ok: false; error: string };
+
+/** Runs a recipe delete once its undo window has passed. Returns instead of redirecting. */
+export async function deleteRecipeNow(id: string): Promise<UndoableResult> {
+  const { supabase } = await authenticatedClient();
+  if (!UUID_PATTERN.test(id)) return { ok: false, error: "Unknown recipe." };
+  try {
+    await deleteRecipeById(supabase, id);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not delete that recipe." };
+  }
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Removes a recipe photo once its undo window has passed. Returns instead of redirecting. */
+export async function removeRecipePhotoNow(id: string): Promise<UndoableResult> {
+  const { supabase } = await authenticatedClient();
+  if (!UUID_PATTERN.test(id)) return { ok: false, error: "Unknown recipe." };
+  try {
+    await removeRecipePhotoById(supabase, id);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not remove that photo." };
+  }
+  revalidatePath("/");
+  revalidatePath(`/recipes/${id}`);
+  return { ok: true };
 }

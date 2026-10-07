@@ -130,3 +130,111 @@ button[aria-busy="true"] { cursor: progress; opacity: .72; }
   .getting-started { padding: 18px 16px; }
   .getting-started-heading { flex-direction: column; gap: 6px; }
 }
+
+/* Toasts (success messages and Undo) */
+.toast-region {
+  position: fixed;
+  z-index: 1100;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 24px));
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast-region:empty { display: none; }
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: #233028;
+  color: #fffdf8;
+  box-shadow: 0 18px 44px rgba(31, 40, 34, .28);
+  font-size: .88rem;
+  font-weight: 700;
+  animation: toast-in .18s ease-out;
+}
+.toast-error { background: #8e423a; }
+.toast-message { flex: 1; min-width: 0; line-height: 1.4; }
+.toast-action {
+  flex: none;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font-weight: 850;
+}
+.toast-action:hover { background: rgba(255, 255, 255, .22); }
+.toast-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, .75);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.toast-close:hover { color: #fff; background: rgba(255, 255, 255, .1); }
+.toast :focus-visible { outline-color: #fff; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
+/* Always-visible Invite / Household entry */
+.desktop-tabs { align-items: center; }
+.tab-invite-link {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  margin-bottom: 6px;
+  padding: 7px 13px;
+  border: 1px solid #cddccf;
+  border-radius: 999px;
+  background: var(--accent-2);
+  color: var(--accent);
+  font-size: .82rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tab-invite-link:hover { background: #e2ece4; }
+.tab-invite-link.has-members { background: var(--panel); border-color: var(--line); color: var(--text); }
+
+.mobile-nav-link { text-decoration: none; }
+
+/* Copy last week */
+.copy-week-button { white-space: nowrap; }
+
+.recipe-photo-pending-note { margin: 0; color: var(--muted); font-size: .85rem; font-weight: 700; }
+
+@media (max-width: 660px) {
+  .mobile-bottom-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mobile-bottom-nav .mobile-nav-link {
+    min-height: 54px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 2px;
+    border-radius: 14px;
+    color: var(--muted);
+    font-size: .68rem;
+    font-weight: 800;
+  }
+  .week-actions .copy-week-button { grid-column: 1 / -1; min-height: 44px; }
+  /* Sit above the floating bottom nav. */
+  .toast-region { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 84px); }
+}
