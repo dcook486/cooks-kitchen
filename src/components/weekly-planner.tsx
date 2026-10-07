@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveDinnerPlan } from "@/app/actions";
 import { quickAddRecipeAndPlan } from "@/app/quick-add-actions";
 import { scaleIngredientLines } from "@/lib/ingredient-scaling";
@@ -246,7 +246,10 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
   const [quickName, setQuickName] = useState("");
   const [quickUrl, setQuickUrl] = useState("");
   const [quickError, setQuickError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const pickerTriggerRef = useRef<HTMLElement | null>(null);
   const [quickAdding, startQuickAddTransition] = useTransition();
 
   const activeItem = pickerDay
@@ -289,14 +292,41 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    // Move keyboard/screen-reader focus into the dialog (unless something inside, like search, already has it).
+    const focusFrame = window.requestAnimationFrame(() => {
+      const dialog = dialogRef.current;
+      if (dialog && !dialog.contains(document.activeElement)) dialog.focus();
+    });
+
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setPickerDay(null);
+      if (event.key === "Escape") {
+        setPickerDay(null);
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      // Keep Tab inside the open dialog.
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), a[href], select:not([disabled]), textarea:not([disabled])"));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || active === dialogRef.current)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
+      // Return focus to whatever opened the picker.
+      const trigger = pickerTriggerRef.current;
+      if (trigger && document.contains(trigger)) trigger.focus({ preventScroll: true });
     };
   }, [pickerDay]);
 
@@ -332,6 +362,8 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
       ? plannerRecipes.find((recipe) => recipe.id === existingItem.recipe_id)
       : undefined;
 
+    pickerTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSaveError("");
     setQuery("");
     setShowQuickAdd(false);
     setQuickName("");
@@ -368,6 +400,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
       } catch {
         setOptimisticSelections((current) => ({ ...current, [mealDate]: previousSelection }));
         setOptimisticServings((current) => ({ ...current, [mealDate]: previousServings }));
+        setSaveError(`We couldn’t save dinner for ${formatWeekday(mealDate)}, ${formatShortDate(mealDate)}. Check your connection and try again.`);
       } finally {
         setSavingDate((current) => current === mealDate ? null : current);
       }
@@ -407,7 +440,13 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
     setQuickError("");
 
     startQuickAddTransition(async () => {
-      const result = await quickAddRecipeAndPlan(formData);
+      let result: Awaited<ReturnType<typeof quickAddRecipeAndPlan>>;
+      try {
+        result = await quickAddRecipeAndPlan(formData);
+      } catch {
+        setQuickError("We couldn’t add that recipe. Check your connection and try again.");
+        return;
+      }
       if (!result.ok) {
         setQuickError(result.error);
         return;
@@ -475,6 +514,13 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
           )}
         </div>
       </div>
+
+      {saveError && (
+        <div className="form-alert error planner-save-error" role="alert">
+          <span>{saveError}</span>
+          <button className="text-button" type="button" onClick={() => setSaveError("")} aria-label="Dismiss message">×</button>
+        </div>
+      )}
 
       {mode === "day" ? (
         dayRecipe ? (
@@ -639,7 +685,7 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
         <div className="meal-modal-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget && !quickAdding) setPickerDay(null);
         }}>
-          <div className="meal-modal" role="dialog" aria-modal="true" aria-labelledby="meal-modal-title">
+          <div className="meal-modal" role="dialog" aria-modal="true" aria-labelledby="meal-modal-title" ref={dialogRef} tabIndex={-1}>
             <div className="meal-modal-header">
               <div>
                 <p className="eyebrow">{pickerDay.day.toUpperCase()} · {formatShortDate(pickerDay.mealDate).toUpperCase()}</p>
@@ -672,7 +718,6 @@ export function WeeklyPlanner({ householdId, timeZone, recipes, mealPlanItems, w
               {filteredRecipes.length ? (
                 <div className="meal-recipe-list">
                   {filteredRecipes.map((recipe) => {
-                    const value = `recipe:${recipe.id}`;
                     const selected = pendingRecipeId === recipe.id;
                     return (
                       <button key={recipe.id} className={`meal-choice-card recipe ${selected ? "selected" : ""}`} type="button" onClick={() => selectRecipeForDinner(recipe)} disabled={quickAdding}>

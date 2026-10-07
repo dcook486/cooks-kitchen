@@ -1,0 +1,132 @@
+/* Usability quick wins: focus visibility, pending states, inline notices, getting-started card, tap targets. */
+
+/* Clear keyboard focus ring everywhere (mouse/touch clicks stay unchanged). */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid rgba(63, 107, 83, .55);
+  outline-offset: 2px;
+}
+.meal-modal:focus-visible,
+.meal-modal:focus { outline: none; }
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.field-hint { color: var(--muted); font-weight: 600; font-size: .72rem; }
+.field-label { display: block; }
+
+/* Pending / disabled buttons */
+button:disabled { cursor: not-allowed; }
+button.is-pending,
+button[aria-busy="true"] { cursor: progress; opacity: .72; }
+
+/* Inline notices with a dismiss button */
+.recipe-notice,
+.planner-save-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.recipe-notice .text-button,
+.planner-save-error .text-button {
+  flex: none;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: inherit;
+}
+.planner-save-error { margin: 0 0 16px; }
+
+/* Empty state actions */
+.empty-state-actions { justify-content: center; }
+
+/* Getting started checklist */
+.getting-started {
+  margin: 0 0 26px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fffdf8 0%, #f8f4ec 100%);
+  box-shadow: var(--shadow);
+}
+.getting-started-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.getting-started-heading h2 { font-size: 1.5rem; }
+.getting-started-heading p:not(.eyebrow) { margin: 6px 0 0; color: var(--muted); font-size: .88rem; }
+.getting-started-dismiss { flex: none; min-height: 36px; font-size: .78rem; color: var(--muted); }
+.getting-started-steps {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.getting-started-steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-content: start;
+  gap: 4px 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.getting-started-steps li.done { background: var(--accent-2); border-color: #cfdfd2; }
+.getting-started-check {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid #d6cbb9;
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 900;
+}
+.getting-started-steps li.done .getting-started-check { background: var(--accent); border-color: var(--accent); }
+.getting-started-copy { display: grid; gap: 3px; min-width: 0; }
+.getting-started-copy strong { font-size: .9rem; }
+.getting-started-copy > span { color: var(--muted); font-size: .8rem; line-height: 1.45; }
+.getting-started-action {
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 8px;
+  min-height: 40px;
+  padding: 8px 13px;
+  font-size: .8rem;
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .getting-started-steps { grid-template-columns: 1fr; }
+}
+
+/* Comfortable tap targets on phones */
+@media (max-width: 660px) {
+  .icon-button { width: 44px; height: 44px; }
+  .recipe-danger-zone .danger-link,
+  .recipe-photo-controls .text-button,
+  .onboarding-signout .text-button { min-height: 44px; padding: 0 8px; }
+  .secondary.compact { min-height: 40px; padding: 9px 12px; }
+  .getting-started { padding: 18px 16px; }
+  .getting-started-heading { flex-direction: column; gap: 6px; }
+}

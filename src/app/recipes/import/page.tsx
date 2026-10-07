@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { saveImportedRecipe } from "@/app/recipes/import/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { extractRecipeFromUrl, type ImportedRecipe } from "@/lib/recipe-import-fallback";
 import { createClient } from "@/lib/supabase/server";
 
@@ -81,12 +82,12 @@ export default async function ImportRecipePage({ searchParams }: Props) {
             placeholder="https://www.example.com/favorite-recipe"
             required
           />
-          <button className="primary" type="submit">Extract recipe</button>
+          <SubmitButton className="primary" pendingLabel="Reading recipe…">Extract recipe</SubmitButton>
         </div>
-        <p className="import-helper">Works best with sites that publish standard Recipe data. You&apos;ll always get a chance to edit before saving.</p>
+        <p className="import-helper">Works best with sites that publish standard Recipe data. You&apos;ll always get a chance to edit before saving. Big pages can take a few seconds.</p>
       </form>
 
-      {extractionError && <div className="form-alert error import-alert">{extractionError}</div>}
+      {extractionError && <div className="form-alert error import-alert" role="alert">{extractionError} You can also <Link href={backHref}>add it by hand</Link> instead.</div>}
 
       {imported && (
         <section className="recipe-edit-card import-preview-card">
@@ -121,18 +122,18 @@ export default async function ImportRecipePage({ searchParams }: Props) {
               <label>Servings<input name="servings" type="number" min="0.5" step="0.5" inputMode="decimal" defaultValue={imported.servings ?? ""} /></label>
             </div>
             <div className="form-grid two">
-              <label>Tags<input name="tags" defaultValue={imported.tags.join(", ")} placeholder="quick, mexican, freezer" /></label>
-              <label>Dietary tags<input name="dietary_tags" defaultValue={imported.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" /></label>
+              <label><span className="field-label">Tags <span className="field-hint">(comma-separated)</span></span><input name="tags" defaultValue={imported.tags.join(", ")} placeholder="quick, mexican, freezer" /></label>
+              <label><span className="field-label">Dietary tags <span className="field-hint">(comma-separated)</span></span><input name="dietary_tags" defaultValue={imported.dietary_tags.join(", ")} placeholder="gluten-free, dairy-free" /></label>
             </div>
             <div className="form-grid two recipe-long-fields">
-              <label>Ingredients<textarea name="ingredients" rows={14} defaultValue={imported.ingredients.join("\n")} placeholder="One ingredient per line" /></label>
-              <label>Instructions<textarea name="instructions" rows={14} defaultValue={imported.instructions.join("\n")} placeholder="One step per line" /></label>
+              <label><span className="field-label">Ingredients <span className="field-hint">(one per line)</span></span><textarea name="ingredients" rows={14} defaultValue={imported.ingredients.join("\n")} placeholder="One ingredient per line" /></label>
+              <label><span className="field-label">Instructions <span className="field-hint">(one step per line)</span></span><textarea name="instructions" rows={14} defaultValue={imported.instructions.join("\n")} placeholder="One step per line" /></label>
             </div>
             <div className="form-footer recipe-edit-footer">
               <label className="favorite-check"><input type="checkbox" name="is_favorite" /> ⭐ Family favorite</label>
               <div className="inline-actions">
                 <Link className="secondary link-button" href={backHref}>Cancel</Link>
-                <button className="primary" type="submit">{requestedNext ? "Save & return to setup" : "Save to recipe bank"}</button>
+                <SubmitButton className="primary" pendingLabel="Saving…">{requestedNext ? "Save & return to setup" : "Save to recipe bank"}</SubmitButton>
               </div>
             </div>
           </form>

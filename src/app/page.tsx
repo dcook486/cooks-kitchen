@@ -13,6 +13,7 @@ type HomeProps = {
     invite?: string;
     joined?: string;
     share_error?: string;
+    onboarding?: string;
   }>;
 };
 
@@ -88,10 +89,11 @@ export default async function Home({ searchParams }: HomeProps) {
 
   if (!membership) redirect("/onboarding");
 
-  const [{ data: household }, { data: recipes }, { data: profile }] = await Promise.all([
+  const [{ data: household }, { data: recipes }, { data: profile }, { count: memberCount }] = await Promise.all([
     supabase.from("households").select("id, name, kitchen_name, tagline, timezone").eq("id", membership.household_id).single(),
     supabase.from("recipes").select("*").eq("household_id", membership.household_id).order("is_favorite", { ascending: false }).order("name", { ascending: true }),
     supabase.from("profiles").select("display_name").eq("id", userId).maybeSingle(),
+    supabase.from("household_members").select("user_id", { count: "exact", head: true }).eq("household_id", membership.household_id),
   ]);
   if (!household) redirect("/onboarding");
 
@@ -159,6 +161,8 @@ export default async function Home({ searchParams }: HomeProps) {
       monthAnchor={monthAnchor}
       initialPlannerMode={plannerMode}
       initialView={initialView}
+      memberCount={memberCount ?? 1}
+      justOnboarded={params.onboarding === "complete"}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createHousehold } from "@/app/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 type Props = {
   defaultHouseholdName: string;
@@ -59,7 +60,7 @@ export function OnboardingHouseholdForm({ defaultHouseholdName, defaultKitchenNa
         <span className="onboarding-field-help">Detected from this device. You can adjust it if needed.</span>
       </label>
 
-      <button className="primary wide onboarding-primary" type="submit">Create my kitchen →</button>
+      <SubmitButton className="primary wide onboarding-primary" pendingLabel="Creating your kitchen…">Create my kitchen →</SubmitButton>
     </form>
   );
 }
