@@ -1,0 +1,65 @@
+/* One smart import box: link, ChatGPT share link, or pasted recipe text. */
+.smart-import-card { display: grid; gap: 10px; }
+.smart-import-label { color: var(--text); font-size: .9rem; font-weight: 800; }
+
+.smart-import-input {
+  display: block;
+  width: 100%;
+  min-height: 92px;
+  max-height: 46vh;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fffefa;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* iOS Safari zooms smaller inputs */
+  line-height: 1.45;
+  resize: vertical;
+  field-sizing: content;
+  overflow-wrap: anywhere;
+}
+.smart-import-input::placeholder { color: #9aa29b; }
+.smart-import-input:disabled { opacity: .7; }
+.smart-import-input.compact { min-height: 64px; max-height: 34vh; padding: 11px 12px; border-radius: 11px; }
+
+.smart-import-hint { min-height: 1.2em; margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+.smart-import-hint.warn { color: #8a5a1f; font-weight: 700; }
+.smart-import-hint:empty { display: none; }
+
+.smart-import-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.smart-import-actions .paste-note { flex-basis: 100%; order: 3; }
+.smart-import-submit { min-width: 170px; min-height: 48px; }
+.smart-import-submit:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
+.smart-import-card[aria-busy="true"] .smart-import-submit:disabled { cursor: wait; }
+
+.paste-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+}
+.paste-note { margin: 0; color: #8a5a1f; font-size: .78rem; line-height: 1.45; }
+
+.import-alert { display: grid; gap: 6px; }
+.import-alert-tip { font-size: .85rem; font-weight: 500; line-height: 1.5; }
+.import-alert-tip a { color: inherit; font-weight: 800; text-decoration: underline; }
+.import-review-anchor { scroll-margin-top: 16px; }
+.import-review-links { flex-wrap: wrap; }
+
+/* Dinner picker quick-add uses the same smart box. */
+.meal-quick-add-form textarea.smart-import-input { font-size: 16px; font-weight: 500; }
+.meal-quick-add-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.meal-quick-add-tools .paste-button { min-height: 44px; padding: 8px 14px; font-size: .82rem; }
+.meal-quick-add-tools .smart-import-hint { flex: 1 1 160px; font-size: .72rem; }
+.meal-quick-add-tools .paste-note { flex-basis: 100%; font-size: .72rem; }
+
+@media (max-width: 760px) {
+  .smart-import-card { padding: 16px; }
+  .smart-import-actions { display: grid; grid-template-columns: 1fr; }
+  .smart-import-actions .paste-button,
+  .smart-import-submit { width: 100%; min-height: 50px; }
+  .import-review-links { width: 100%; }
+  .import-review-links > * { flex: 1 1 auto; min-height: 44px; text-align: center; }
+}

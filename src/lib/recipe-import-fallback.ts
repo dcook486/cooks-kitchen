@@ -1,7 +1,8 @@
 import {
   extractRecipeFromUrl as extractDirectRecipe,
   type ImportedRecipe,
-} from "@/lib/recipe-import";
+} from "./recipe-import";
+import { parseRecipeText } from "./recipe-text-parser";
 
 const MAX_READER_CHARS = 1_500_000;
 
@@ -88,6 +89,7 @@ function shouldTryRenderedFallback(error: unknown) {
 function cleanMarkdown(value: string) {
   return value
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)(?=\[)/g, "$1 ")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/[*_`~]/g, "")
     .replace(/\\([#>*_`])/g, "$1")
@@ -109,17 +111,26 @@ function titleFromReader(raw: string, markdown: string) {
   return headingTitle ? cleanMarkdown(headingTitle) : "Imported recipe";
 }
 
+function headingAt(lines: string[], index: number): string | null {
+  const atx = lines[index].match(/^\s*#{1,6}\s+(.+?)\s*$/);
+  if (atx) return atx[1];
+  // Setext headings ("Ingredients" underlined with ==== or ----), common in rendered-page markdown.
+  const next = lines[index + 1];
+  if (next !== undefined && lines[index].trim() && /^\s*(?:=+|-{2,})\s*$/.test(next) && !/^\s*[-*+]\s/.test(lines[index])) return lines[index].trim();
+  return null;
+}
+
 function section(markdown: string, names: string[]) {
   const lines = markdown.split("\n");
   const normalizedNames = names.map((name) => name.toLowerCase());
   let start = -1;
 
   for (let i = 0; i < lines.length; i += 1) {
-    const match = lines[i].match(/^\s*#{1,6}\s+(.+?)\s*$/);
-    if (!match) continue;
-    const heading = cleanMarkdown(match[1]).toLowerCase();
+    const title = headingAt(lines, i);
+    if (title === null) continue;
+    const heading = cleanMarkdown(title).toLowerCase();
     if (normalizedNames.some((name) => heading === name || heading.startsWith(`${name} `))) {
-      start = i + 1;
+      start = /^\s*#/.test(lines[i]) ? i + 1 : i + 2;
       break;
     }
   }
@@ -128,13 +139,13 @@ function section(markdown: string, names: string[]) {
 
   const output: string[] = [];
   for (let i = start; i < lines.length; i += 1) {
-    if (/^\s*#{1,6}\s+/.test(lines[i])) break;
+    if (headingAt(lines, i) !== null) break;
     output.push(lines[i]);
   }
   return output;
 }
 
-function ingredientLines(markdown: string) {
+export function ingredientLines(markdown: string) {
   return section(markdown, ["ingredients", "ingredient list"])
     .map((line) => line.trim())
     .filter((line) => /^[-*+]\s+/.test(line))
@@ -149,17 +160,26 @@ function ingredientLines(markdown: string) {
     });
 }
 
-function instructionLines(markdown: string) {
+export function instructionLines(markdown: string) {
   const source = section(markdown, ["directions", "instructions", "method", "preparation"]);
   const steps: string[] = [];
 
+  let previousBlank = true;
   for (const rawLine of source) {
     const line = rawLine.trim();
     const numbered = line.match(/^\d+[.)]\s+(.+)$/);
     const bulleted = line.match(/^[-*+]\s+(.+)$/);
     const candidate = numbered?.[1] ?? bulleted?.[1] ?? "";
     const cleaned = cleanMarkdown(candidate);
-    if (cleaned && cleaned.length <= 1800) steps.push(cleaned);
+    if (cleaned && cleaned.length <= 1800) {
+      steps.push(cleaned);
+    } else if (line && steps.length && (!previousBlank || /^\s{2,}/.test(rawLine))) {
+      // Text wrapped under "1. **Sear the chicken**" belongs to that step.
+      const last = steps[steps.length - 1];
+      const extra = cleanMarkdown(line);
+      if (extra) steps[steps.length - 1] = /[.:!?]$/.test(last) ? `${last} ${extra}` : `${last}: ${extra}`;
+    }
+    previousBlank = !line;
   }
 
   if (steps.length) return steps;
@@ -261,11 +281,11 @@ async function extractThroughReader(input: string): Promise<ImportedRecipe> {
       cache: "no-store",
     });
   } catch {
-    throw new Error("That recipe website blocked automatic import. You can still add the recipe manually.");
+    throw new Error("That recipe website blocked automatic import. Copy the ingredients and steps from the page and paste them here instead.");
   }
 
   if (!response.ok) {
-    throw new Error("That recipe website blocked automatic import. You can still add the recipe manually.");
+    throw new Error("That recipe website blocked automatic import. Copy the ingredients and steps from the page and paste them here instead.");
   }
 
   const raw = await response.text();
@@ -274,8 +294,16 @@ async function extractThroughReader(input: string): Promise<ImportedRecipe> {
   }
 
   const markdown = readerMarkdown(raw);
-  const ingredients = ingredientLines(markdown);
-  const instructions = instructionLines(markdown);
+  let ingredients = ingredientLines(markdown);
+  let instructions = instructionLines(markdown);
+  if (!ingredients.length && !instructions.length) {
+    // Some rendered pages lose their headings; fall back to the shape of the lists.
+    const shaped = parseRecipeText(markdown);
+    if (shaped.ingredients.length >= 2 && shaped.instructions.length >= 1) {
+      ingredients = shaped.ingredients;
+      instructions = shaped.instructions;
+    }
+  }
   const name = titleFromReader(raw, markdown);
   const description = firstDescription(markdown);
   const warnings: string[] = [
@@ -302,13 +330,10 @@ async function extractThroughReader(input: string): Promise<ImportedRecipe> {
   };
 }
 
+// Only worth the slower rendered-page reader when the core of the recipe is missing;
+// a missing serving count or time is quicker to type than to wait for.
 function needsRenderedDetails(recipe: ImportedRecipe) {
-  return (
-    !recipe.ingredients.length ||
-    !recipe.instructions.length ||
-    recipe.servings == null ||
-    (recipe.prep_minutes == null && recipe.cook_minutes == null)
-  );
+  return !recipe.ingredients.length || !recipe.instructions.length;
 }
 
 function mergeRecipeDetails(primary: ImportedRecipe, rendered: ImportedRecipe): ImportedRecipe {
@@ -327,6 +352,7 @@ function mergeRecipeDetails(primary: ImportedRecipe, rendered: ImportedRecipe): 
     const lower = warning.toLowerCase();
     if (ingredients.length && lower.startsWith("no ingredients")) return false;
     if (instructions.length && lower.startsWith("no instructions")) return false;
+    if (ingredients.length && instructions.length && lower.includes("only pulled the page basics")) return false;
     return true;
   });
 

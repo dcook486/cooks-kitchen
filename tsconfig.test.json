@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "commonjs",
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": ".test-build",
+    "rootDir": "src/lib",
+    "types": []
+  },
+  "files": [
+    "src/lib/recipe-text-parser.ts",
+    "src/lib/import-input.ts",
+    "src/lib/chatgpt-share.ts",
+    "src/lib/recipe-import.ts",
+    "src/lib/recipe-import-fallback.ts"
+  ]
+}

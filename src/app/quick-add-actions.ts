@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { extractRecipeFromUrl } from "@/lib/recipe-import-fallback";
+import { MAX_IMPORT_INPUT_CHARS, detectImportInput } from "@/lib/import-input";
+import type { ImportedRecipe } from "@/lib/recipe-import-fallback";
+import { importFromDetected } from "@/lib/smart-import";
 
 function clean(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -37,14 +39,16 @@ export async function quickAddRecipeAndPlan(formData: FormData): Promise<QuickAd
   const householdId = clean(formData.get("household_id"));
   const weekStart = clean(formData.get("week_start"));
   const mealDate = clean(formData.get("meal_date"));
-  const requestedName = clean(formData.get("name"));
-  const sourceUrl = clean(formData.get("source_url"));
+  // One box: a recipe name, a link (sites or ChatGPT share links), or pasted recipe text.
+  // Older clients sent separate name / source_url fields.
+  const rawInput = clean(formData.get("input")) || clean(formData.get("source_url")) || clean(formData.get("name"));
+  const detected = detectImportInput(rawInput.slice(0, MAX_IMPORT_INPUT_CHARS));
 
   if (!householdId || !weekStart || !mealDate) {
     return { ok: false, error: "Cook’s Kitchen could not determine which dinner to update." };
   }
-  if (!requestedName && !sourceUrl) {
-    return { ok: false, error: "Enter a recipe name or paste a recipe URL." };
+  if (detected.kind === "empty") {
+    return { ok: false, error: "Type a recipe name, or paste a link or the recipe text." };
   }
 
   const { data: membership } = await supabase
@@ -55,19 +59,23 @@ export async function quickAddRecipeAndPlan(formData: FormData): Promise<QuickAd
     .maybeSingle();
   if (!membership) return { ok: false, error: "You do not have access to this household." };
 
-  let imported: Awaited<ReturnType<typeof extractRecipeFromUrl>> | null = null;
-  if (sourceUrl) {
+  let imported: ImportedRecipe | null = null;
+  if (detected.kind !== "name") {
     try {
-      imported = await extractRecipeFromUrl(sourceUrl);
+      const result = await importFromDetected(detected);
+      if (result.origin === "text" && !result.recipe.structured) {
+        return { ok: false, error: "We couldn’t find ingredients or steps in that text. Paste the whole recipe, or just type a name." };
+      }
+      imported = result.recipe;
     } catch (error) {
       return {
         ok: false,
-        error: error instanceof Error ? error.message : "Cook’s Kitchen could not import that recipe link.",
+        error: error instanceof Error ? error.message : "Cook’s Kitchen could not import that recipe.",
       };
     }
   }
 
-  const name = requestedName || imported?.name || "Imported recipe";
+  const name = (detected.kind === "name" ? detected.name : imported?.name) || "Imported recipe";
   const ingredients = (imported?.ingredients ?? []).map((text) => ({ text }));
 
   const { data: recipe, error: recipeError } = await supabase
@@ -76,7 +84,7 @@ export async function quickAddRecipeAndPlan(formData: FormData): Promise<QuickAd
       household_id: householdId,
       name,
       description: imported?.description || null,
-      source_url: imported?.source_url || sourceUrl || null,
+      source_url: imported?.source_url || null,
       image_url: null,
       prep_minutes: imported?.prep_minutes ?? null,
       cook_minutes: imported?.cook_minutes ?? null,
