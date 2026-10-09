@@ -1,5 +1,6 @@
 "use client";
 
+import { NavIcon, type NavIconName } from "@/components/nav-icons";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -41,9 +42,9 @@ type Props = {
   deletedRecipeId: string | null;
 };
 
-const views: Array<{ id: View; label: string; mobileLabel: string; icon: string }> = [
-  { id: "week", label: "The Plan", mobileLabel: "The Plan", icon: "▦" },
-  { id: "recipes", label: "Recipes", mobileLabel: "Recipes", icon: "⌑" },
+const views: Array<{ id: View; label: string; mobileLabel: string; icon: NavIconName }> = [
+  { id: "week", label: "The Plan", mobileLabel: "The Plan", icon: "plan" },
+  { id: "recipes", label: "Recipes", mobileLabel: "Recipes", icon: "recipes" },
 ];
 
 function totalMinutes(recipe: Recipe) {
@@ -191,7 +192,7 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
           </button>
         ))}
         <Link className={`tab-invite-link ${hasCoPlanner ? "has-members" : ""}`} href="/household" title={inviteTitle}>
-          <span aria-hidden="true">{hasCoPlanner ? "👥" : "＋"}</span> {inviteLabel}
+          <NavIcon name={hasCoPlanner ? "household" : "invite"} size={18} /> {inviteLabel}
         </Link>
       </nav>
 
@@ -306,12 +307,12 @@ export function KitchenDashboard({ household, recipes, displayName, mealPlanItem
       <nav className="mobile-bottom-nav" aria-label="App sections">
         {views.map((tab) => (
           <button key={tab.id} type="button" className={view === tab.id ? "active" : ""} onClick={() => selectView(tab.id)} aria-current={view === tab.id ? "page" : undefined}>
-            <span className="mobile-nav-icon" aria-hidden="true">{tab.icon}</span>
+            <span className="mobile-nav-icon" aria-hidden="true"><NavIcon name={tab.icon} /></span>
             <span>{tab.mobileLabel}</span>
           </button>
         ))}
         <Link className="mobile-nav-link" href="/household" title={inviteTitle}>
-          <span className="mobile-nav-icon" aria-hidden="true">{hasCoPlanner ? "👥" : "＋"}</span>
+          <span className="mobile-nav-icon" aria-hidden="true"><NavIcon name={hasCoPlanner ? "household" : "invite"} /></span>
           <span>{hasCoPlanner ? "Household" : "Invite"}</span>
         </Link>
       </nav>

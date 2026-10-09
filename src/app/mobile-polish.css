@@ -444,3 +444,11 @@ body {
 @media (display-mode: standalone) and (max-width: 660px) {
   .app-shell { padding-top: calc(env(safe-area-inset-top) + 8px); }
 }
+
+/* SVG nav icons (replaces text glyphs/emoji that rendered inconsistently on iOS). */
+.nav-icon { display: block; flex: none; }
+.mobile-nav-icon { display: grid; place-items: center; width: 24px; height: 24px; font-size: 0; line-height: 0; }
+.mobile-bottom-nav button.active,
+.mobile-bottom-nav .mobile-nav-link[aria-current="page"] { color: var(--accent); }
+.mobile-bottom-nav button.active .nav-icon { stroke-width: 2.25; }
+.tab-invite-link { display: inline-flex; align-items: center; gap: 6px; }
